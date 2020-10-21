@@ -1,6 +1,6 @@
 
 MPATH       := $($(NETBERG_AURORA_720_PLATFORM_MODULE)_SRC_PATH)
-DEP_FILES   := $(SONIC_COMMON_FILES_LIST) platform/broadcom/platform-modules-ingrasys.mk platform/broadcom/platform-modules-ingrasys.dep   
+DEP_FILES   := $(SONIC_COMMON_FILES_LIST) platform/broadcom/platform-modules-netberg.mk platform/broadcom/platform-modules-netberg.dep
 DEP_FILES   += $(SONIC_COMMON_BASE_FILES_LIST)
 DEP_FILES   += $(shell git ls-files $(MPATH))
 
