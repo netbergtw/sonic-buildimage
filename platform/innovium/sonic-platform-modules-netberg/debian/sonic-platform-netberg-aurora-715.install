@@ -1,0 +1,3 @@
+aurora-715/scripts/* usr/bin
+aurora-715/utils/* usr/local/bin
+aurora-715/service/*.service lib/systemd/system
