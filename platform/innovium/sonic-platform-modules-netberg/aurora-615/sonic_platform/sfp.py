@@ -320,18 +320,15 @@ class Sfp(SfpBase):
             eeprom_raw.append("0x00")
 
         try:
-            eeprom = open(
-                self.eeprom_path_list[path_idx], mode="rb", buffering=0)
-            eeprom.seek(offset)
-            raw_data = eeprom.read(num_bytes)
-            for nb in range(0, len(raw_data)):
-                eeprom_raw[nb] = hex(ord(raw_data[nb]))[2:].zfill(2)
+            with open(self.eeprom_path_list[path_idx], mode="rb", buffering=0) as eeprom:
+                eeprom.seek(offset)
+                raw_data = eeprom.read(num_bytes)
+                for nb in range(0, len(raw_data)):
+                    eeprom_raw[nb] = hex(raw_data[nb])[2:].zfill(2)
         except Exception as ex:
-            logger.log_error("Fail to read eeprom {}".format(
-                self.eeprom_path_list[path_idx]))
-            logger.log_error("  {}".format(ex))
-            if eeprom is not None:
-                eeprom.close()
+            #logger.log_error("Fail to read eeprom {}".format(
+            #    self.eeprom_path_list[path_idx]))
+            #logger.log_error("  {}".format(ex))
             return None
 
         return eeprom_raw
@@ -347,7 +344,7 @@ class Sfp(SfpBase):
                 return data[line].rstrip('\r\n')
         except Exception as ex:
             logger.log_error(
-                "Unable to open {} due to {}".format(filepath, repr(ex)))
+                "Unable to open(R) {} due to {}".format(filepath, repr(ex)))
 
         return None
 
@@ -357,7 +354,7 @@ class Sfp(SfpBase):
                 return fd.write(data)
         except Exception as ex:
             logger.log_error(
-                "Unable to open {} due to {}".format(filepath, repr(ex)))
+                "Unable to open(W) {} due to {}".format(filepath, repr(ex)))
         return 0
 
     def get_presence(self):
