@@ -1,4 +1,3 @@
-/* An hwmon driver for Netberg Aurora 715 Innovium i2c Module */
 #pragma GCC diagnostic ignored "-Wformat-zero-length"
 #include "x86-64-netberg-aurora-715.h"
 #include "x86-64-netberg-aurora-715-common.h"
@@ -9,7 +8,7 @@ extern struct i2c_client *Netberg_BMC_14_client;  //0x14 for BMC slave
 /* end of extern i2c_client */
 
 /* implement i2c_function */
-ssize_t themal_temp_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_temp_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int status = -EPERM;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -19,29 +18,32 @@ ssize_t themal_temp_get(struct device *dev, struct device_attribute *da, char *b
     {
         switch (attr->index)
         {
-            case TEMP_R_B_F:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_F_REG);
+            case TEMP_TH0_T:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_T_REG);
             break;
-            case TEMP_R_B_B:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_B_REG);
+            case TEMP_TH0_B:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_B_REG);
             break;
-            case TEMP_L_B_F:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_F_REG);
+            case TEMP_TH0_R:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_R_REG);
             break;
-            case TEMP_L_B_B:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_B_REG);
+            case TEMP_TH1_T:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_T_REG);
             break;
-            case TEMP_R_T_F:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_F_REG);
+            case TEMP_TH1_B:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_B_REG);
             break;
-            case TEMP_R_T_B:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_B_REG);
+            case TEMP_TH3_T:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_T_REG);
             break;
-            case TEMP_L_T_F:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_F_REG);
+            case TEMP_TH3_B:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_B_REG);
             break;
-            case TEMP_L_T_B:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_B_REG);
+            case TEMP_TH2_T:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_T_REG);
+            break;
+            case TEMP_TH2_B:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_B_REG);
             break;
         }
         if(status == 0xff || status < 0)
@@ -61,7 +63,7 @@ ssize_t themal_temp_get(struct device *dev, struct device_attribute *da, char *b
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_temp_max_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_temp_max_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int status = -EPERM;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -71,29 +73,32 @@ ssize_t themal_temp_max_get(struct device *dev, struct device_attribute *da, cha
     {
         switch (attr->index)
         {
-            case TEMP_R_B_F_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_F_MAX_REG);
+            case TEMP_TH0_T_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_T_MAX_REG);
             break;
-            case TEMP_L_B_F_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_F_MAX_REG);
+            case TEMP_TH1_T_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_T_MAX_REG);
             break;
-            case TEMP_R_T_F_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_F_MAX_REG);
+            case TEMP_TH3_T_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_T_MAX_REG);
             break;
-            case TEMP_L_T_F_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_F_MAX_REG);
+            case TEMP_TH2_T_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_T_MAX_REG);
             break;
-            case TEMP_R_B_B_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_B_MAX_REG);
+            case TEMP_TH0_B_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_B_MAX_REG);
             break;
-            case TEMP_L_B_B_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_B_MAX_REG);
+            case TEMP_TH0_R_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_R_MAX_REG);
             break;
-            case TEMP_R_T_B_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_B_MAX_REG);
+            case TEMP_TH1_B_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_B_MAX_REG);
             break;
-            case TEMP_L_T_B_MAX:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_B_MAX_REG);
+            case TEMP_TH3_B_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_B_MAX_REG);
+            break;
+            case TEMP_TH2_B_MAX:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_B_MAX_REG);
             break;
         }
         if(status == 0xff || status < 0)
@@ -113,7 +118,7 @@ ssize_t themal_temp_max_get(struct device *dev, struct device_attribute *da, cha
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_temp_min_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_temp_min_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int status = -EPERM;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -123,29 +128,32 @@ ssize_t themal_temp_min_get(struct device *dev, struct device_attribute *da, cha
     {
         switch (attr->index)
         {
-            case TEMP_R_B_F_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_F_MIN_REG);
+            case TEMP_TH0_T_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_T_MIN_REG);
             break;
-            case TEMP_L_B_F_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_F_MIN_REG);
+            case TEMP_TH1_T_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_T_MIN_REG);
             break;
-            case TEMP_R_T_F_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_F_MIN_REG);
+            case TEMP_TH3_T_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_T_MIN_REG);
             break;
-            case TEMP_L_T_F_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_F_MIN_REG);
+            case TEMP_TH2_T_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_T_MIN_REG);
             break;
-            case TEMP_R_B_B_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_B_MIN_REG);
+            case TEMP_TH0_B_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_B_MIN_REG);
             break;
-            case TEMP_L_B_B_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_B_MIN_REG);
+            case TEMP_TH0_R_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_R_MIN_REG);
             break;
-            case TEMP_R_T_B_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_B_MIN_REG);
+            case TEMP_TH1_B_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_B_MIN_REG);
             break;
-            case TEMP_L_T_B_MIN:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_B_MIN_REG);
+            case TEMP_TH3_B_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_B_MIN_REG);
+            break;
+            case TEMP_TH2_B_MIN:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_B_MIN_REG);
             break;
         }
         if(status == 0xff || status < 0)
@@ -165,7 +173,7 @@ ssize_t themal_temp_min_get(struct device *dev, struct device_attribute *da, cha
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_temp_crit_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_temp_crit_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int status = -EPERM;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -175,29 +183,32 @@ ssize_t themal_temp_crit_get(struct device *dev, struct device_attribute *da, ch
     {
         switch (attr->index)
         {
-            case TEMP_R_B_F_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_F_CRIT_REG);
+            case TEMP_TH0_T_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_T_CRIT_REG);
             break;
-            case TEMP_L_B_F_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_F_CRIT_REG);
+            case TEMP_TH1_T_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_T_CRIT_REG);
             break;
-            case TEMP_R_T_F_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_F_CRIT_REG);
+            case TEMP_TH3_T_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_T_CRIT_REG);
             break;
-            case TEMP_L_T_F_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_F_CRIT_REG);
+            case TEMP_TH2_T_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_T_CRIT_REG);
             break;
-            case TEMP_R_B_B_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_B_CRIT_REG);
+            case TEMP_TH0_B_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_B_CRIT_REG);
             break;
-            case TEMP_L_B_B_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_B_CRIT_REG);
+            case TEMP_TH0_R_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_R_CRIT_REG);
             break;
-            case TEMP_R_T_B_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_B_CRIT_REG);
+            case TEMP_TH1_B_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_B_CRIT_REG);
             break;
-            case TEMP_L_T_B_CRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_B_CRIT_REG);
+            case TEMP_TH3_B_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_B_CRIT_REG);
+            break;
+            case TEMP_TH2_B_CRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_B_CRIT_REG);
             break;
         }
         if(status == 0xff || status < 0)
@@ -217,7 +228,7 @@ ssize_t themal_temp_crit_get(struct device *dev, struct device_attribute *da, ch
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_temp_lcrit_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_temp_lcrit_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int status = -EPERM;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -227,29 +238,32 @@ ssize_t themal_temp_lcrit_get(struct device *dev, struct device_attribute *da, c
     {
         switch (attr->index)
         {
-            case TEMP_R_B_F_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_F_LCRIT_REG);
+            case TEMP_TH0_T_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_T_LCRIT_REG);
             break;
-            case TEMP_L_B_F_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_F_LCRIT_REG);
+            case TEMP_TH1_T_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_T_LCRIT_REG);
             break;
-            case TEMP_R_T_F_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_F_LCRIT_REG);
+            case TEMP_TH3_T_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_T_LCRIT_REG);
             break;
-            case TEMP_L_T_F_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_F_LCRIT_REG);
+            case TEMP_TH2_T_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_T_LCRIT_REG);
             break;
-            case TEMP_R_B_B_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_B_B_LCRIT_REG);
+            case TEMP_TH0_B_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_B_LCRIT_REG);
             break;
-            case TEMP_L_B_B_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_B_B_LCRIT_REG);
+            case TEMP_TH0_R_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH0_R_LCRIT_REG);
             break;
-            case TEMP_R_T_B_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_R_T_B_LCRIT_REG);
+            case TEMP_TH1_B_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH1_B_LCRIT_REG);
             break;
-            case TEMP_L_T_B_LCRIT:
-                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_L_T_B_LCRIT_REG);
+            case TEMP_TH3_B_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH3_B_LCRIT_REG);
+            break;
+            case TEMP_TH2_B_LCRIT:
+                status = i2c_smbus_read_byte_data(Netberg_BMC_14_client, TEMP_TH2_B_LCRIT_REG);
             break;
         }
         if(status == 0xff || status < 0)

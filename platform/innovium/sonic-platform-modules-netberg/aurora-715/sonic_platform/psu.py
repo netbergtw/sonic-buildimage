@@ -24,16 +24,13 @@ PSU_MAX_TEMP = 50.0  # C
 class Psu(PsuBase):
     """Platform-specific Psu class"""
 
-    def __init__(self, index, info_list, is_bmc):
+    def __init__(self, index, info_list):
         PsuBase.__init__(self)
         self.index = index
-        self.is_bmc = is_bmc
         self.attr_path = info_list[0]
         self.status_path = info_list[1]
-        if is_bmc:
-            speed_file = self.attr_path + 'psu{}_fan_speed'.format(index+1)
-        else:
-            speed_file = self.attr_path + 'psu_fan_speed_1'
+
+        speed_file = self.attr_path + 'psu{}_fan_speed'.format(index+1)
 
         fan = Fan(index, 0, [self.status_path, speed_file], True)
         self._fan_list.append(fan)
@@ -45,9 +42,8 @@ class Psu(PsuBase):
                 if line == 0xFF:
                     data = fd.read()
                     return data.rstrip('\r\n')
-                else:
-                    data = fd.readlines()
-                    return data[line].rstrip('\r\n')
+                data = fd.readlines()
+                return data[line].rstrip('\r\n')
         except FileNotFoundError:
             logger.log_error(f"File {filepath} not found.  Aborting")
         except OSError as ex:
@@ -66,10 +62,8 @@ class Psu(PsuBase):
         """
         data = self.__read_attr_file(
             self.status_path + 'psu{}_prnt'.format(self.index+1))
-        if data == '1':
-            return True
-        else:
-            return False
+
+        return data == '1'
 
     def get_powergood_status(self):
         """
@@ -80,10 +74,8 @@ class Psu(PsuBase):
         """
         data = self.__read_attr_file(
             self.status_path + 'psu{}_good'.format(self.index+1))
-        if data == '1':
-            return True
-        else:
-            return False
+
+        return data == '1'
 
     def get_voltage(self):
         """
@@ -92,10 +84,9 @@ class Psu(PsuBase):
             A float number, the output voltage in volts, 
             e.g. 12.1 
         """
-        if self.is_bmc:
-            path = self.attr_path + 'psu{}_vout'.format(self.index+1)
-        else:
-            path = self.attr_path + "/psu_vout"
+
+        path = self.attr_path + 'psu{}_vout'.format(self.index+1)
+
         vout = self.__read_attr_file(path, 0)
         if vout is not None:
             return float(vout) / 1000
@@ -108,10 +99,7 @@ class Psu(PsuBase):
         Returns:
             A float number, the electric current in amperes, e.g 15.4
         """
-        if self.is_bmc:
-            path = self.attr_path + 'psu{}_iout'.format(self.index+1)
-        else:
-            path = self.attr_path + "/psu_iout"
+        path = self.attr_path + 'psu{}_iout'.format(self.index+1)
         iout = self.__read_attr_file(path, 0)
         if iout is not None:
             return float(iout) / 1000
@@ -123,10 +111,7 @@ class Psu(PsuBase):
         Returns:
             A float number, the power in watts, e.g. 302.6
         """
-        if self.is_bmc:
-            path = self.attr_path + 'psu{}_pout'.format(self.index+1)
-        else:
-            path = self.attr_path + "/psu_pout"
+        path = self.attr_path + 'psu{}_pout'.format(self.index+1)
         pout = self.__read_attr_file(path, 0)
         if pout is not None:
             return float(pout) / 1000000
@@ -158,10 +143,7 @@ class Psu(PsuBase):
             A float number of current temperature in Celsius up to nearest thousandth
             of one degree Celsius, e.g. 30.125 
         """
-        if self.is_bmc:
-            path = self.attr_path+'psu{}_temp'.format(self.index+1)
-        else:
-            path = self.attr_path + "/psu_temp_1"
+        path = self.attr_path+'psu{}_temp'.format(self.index+1)
         temperature = self.__read_attr_file(path, 0)
         if temperature is not None:
             return float(temperature) / 1000

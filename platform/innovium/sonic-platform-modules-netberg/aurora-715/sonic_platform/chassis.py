@@ -12,6 +12,7 @@ try:
     from sonic_platform_base.chassis_base import ChassisBase
     from sonic_platform.platDev import PlatDev
     from sonic_platform.fan import Fan
+    from sonic_platform.fan_drawer import FanDrawer
     from sonic_platform.psu import Psu
     from sonic_platform.sfp import Sfp
     from sonic_platform.thermal import Thermal
@@ -60,29 +61,26 @@ class Chassis(ChassisBase):
             fanlist = self.platdev.get_fan_list()
             for index in range(0, len(fanlist)):
                 fan_name = fanlist[index]
-                for pos in range(0, self.platdev.get_fan_num_by_name(fan_name)):
-                    fan = Fan(
-                        index, pos, [self.platdev.get_fan_sysfile_path_by_name(fan_name), ''])
-                    self._fan_list.append(fan)
+                fandrawer = FanDrawer(index,self.platdev.get_fan_num_by_name(fan_name),[self.platdev.get_fan_sysfile_path_by_name(fan_name),''])
+                self._fan_drawer_list.append(fandrawer)
+                self._fan_list.extend(fandrawer._fan_list)
 
         # init psu list
         psulist = self.platdev.get_psu_list()
-        for index in range(0, len(psulist)):
-            psu_name = psulist[index]
+        for index, psu_name in enumerate(psulist):
             psu = Psu(index, [self.platdev.get_psu_attr_path_by_name(psu_name),
-                              self.platdev.get_psu_status_path_by_name(psu_name)],
-                      self.platdev.bmc_is_exist())
+                              self.platdev.get_psu_status_path_by_name(psu_name)])
             self._psu_list.append(psu)
 
         # init thermal list
         thermal_info_list = self.platdev.get_thermal_dev_info_all()
+        
         for index in range(0, len(thermal_info_list)):
             if len(self.platdev.get_thermal_dev_tempidx_by_idx(index)) > 1:
                 for idx in self.platdev.get_thermal_dev_tempidx_by_idx(index):
                     thermal = Thermal(idx, self.platdev.get_thermal_dev_name_by_idx(index)+"-{}".format(idx),
                                       self.platdev.get_thermal_dev_sysfile_path_by_idx(
                                           index),
-                                      self.platdev.bmc_is_exist(),
                                       self.platdev.get_thermal_dev_support_mask_by_idx(
                                           index),
                                       self.platdev.get_thermal_dev_ext_sysfile_list_by_idx(index))
@@ -91,7 +89,6 @@ class Chassis(ChassisBase):
                 thermal = Thermal(1, self.platdev.get_thermal_dev_name_by_idx(index),
                                   self.platdev.get_thermal_dev_sysfile_path_by_idx(
                                       index),
-                                  self.platdev.bmc_is_exist(),
                                   self.platdev.get_thermal_dev_support_mask_by_idx(
                                       index),
                                   self.platdev.get_thermal_dev_ext_sysfile_list_by_idx(index))

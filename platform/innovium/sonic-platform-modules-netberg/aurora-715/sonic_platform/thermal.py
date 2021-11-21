@@ -18,7 +18,7 @@ logger = Logger("thermal")
 class Thermal(ThermalBase):
     """Platform-specific Thermal class"""
 
-    def __init__(self, index, name, sysfile_path, is_bmc, support_mask=0x1, ext_sysfile_list=None):
+    def __init__(self, index, name, sysfile_path, support_mask=0x1, ext_sysfile_list=None):
         # index is used to indicate the temp{} under sffile_path
         # support_mask:  1:support  0:not support
         #   bit 0 : temperature (always 1)
@@ -34,7 +34,6 @@ class Thermal(ThermalBase):
         self.name = name
         self.filepath = sysfile_path
         self.support_mask = support_mask
-        self.is_bmc = is_bmc
 
         self.temperature_file = None
         self.high_thershold_file = None
@@ -45,7 +44,7 @@ class Thermal(ThermalBase):
         if sysfile_path is None:
             return
 
-        if self.is_bmc == False or support_mask & 0x80 == 0x80:
+        if support_mask & 0x80 == 0x80:
             if support_mask & 0x1:
                 self.temperature_file = \
                     sysfile_path + "/temp{}_input".format(self.index)
@@ -61,7 +60,8 @@ class Thermal(ThermalBase):
             if support_mask & 0x10:
                 self.low_critical_file = \
                     sysfile_path + "/temp{}_lcrit".format(self.index)
-        elif self.is_bmc and ext_sysfile_list is not None:
+
+        if ext_sysfile_list is not None:
             if support_mask & 0x1:
                 self.temperature_file = \
                     sysfile_path + ext_sysfile_list[self.index][0]
@@ -78,16 +78,16 @@ class Thermal(ThermalBase):
                 self.low_critical_file = \
                     sysfile_path + ext_sysfile_list[self.index][4]
 
-    def __read_attr_file(self, filepath, line=0xFF):
+    @staticmethod
+    def __read_attr_file(filepath, line=0xFF):
         try:
             with open(filepath, 'r') as fd:
                 if line == 0xFF:
                     data = fd.read()
                     return data.rstrip('\r\n')
-                else:
-                    data = fd.readlines()
-                    return data[line].rstrip('\r\n')
-        except Exception as ex:
+                data = fd.readlines()
+                return data[line].rstrip('\r\n')
+        except Exception as ex:  # pylint: disable=broad-except
             logger.log_error(
                 "Unable to open {} due to {}".format(filepath, repr(ex)))
 

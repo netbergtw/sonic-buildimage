@@ -187,7 +187,6 @@ static int Netberg_i2c_probe(struct i2c_client *client, const struct i2c_device_
         goto exit_free;
     }
 
-
     Netberg_CPLD_30_data->hwmon_dev = hwmon_device_register(&client->dev);
     if (IS_ERR(Netberg_CPLD_30_data->hwmon_dev))
     {
@@ -307,7 +306,6 @@ static struct i2c_board_info Netberg_EEPROM_56_info[] __initdata =
         .platform_data = NULL,
     },
 };
-
 
 static int __init Netberg_i2c_init(void)
 {

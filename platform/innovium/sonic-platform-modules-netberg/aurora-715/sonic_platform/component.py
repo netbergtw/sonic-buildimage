@@ -22,9 +22,9 @@ class Component(ComponentBase):
 
     def _get_cpld_register(self, syspath):
         rv = 'ERR'
-        if (not os.path.isfile(syspath)):
+        if not os.path.isfile(syspath):
             return rv
-        # noinspection PyBroadException
+        
         try:
             with open(syspath, 'r') as fd:
                 rv = fd.read()
@@ -40,7 +40,7 @@ class Component(ComponentBase):
             with open(BIOS_VERSION_PATH, 'r') as fd:
                 bios_version = fd.read()
                 return bios_version.strip()
-        except Exception as e:
+        except Exception as error:
             return None
 
     def _get_cpld_version(self, cpld_number):
@@ -52,10 +52,7 @@ class Component(ComponentBase):
 
         cpld_version = self._get_cpld_register(cpld_version_reg[cpld_number])
 
-        if cpld_version != 'ERR':
-            return cpld_version[-4:]
-
-        return 'NA'
+        return cpld_version[-4:] if cpld_version != 'ERR' else 'NA'
 
     def get_name(self):
         """
@@ -81,13 +78,11 @@ class Component(ComponentBase):
         """
         if self.index == 0:
             bios_ver = self._get_bios_version()
-            if not bios_ver:
-                return 'NA'
-
-            return bios_ver
-
+            return 'NA' if not bios_ver else bios_ver
         elif self.index <= 3:
             return self._get_cpld_version(self.index)
+
+        return None
 
     def install_firmware(self, image_path):
         """

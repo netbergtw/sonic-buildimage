@@ -12,6 +12,32 @@ PLATFORM_NAME = "aurora-715"
 MAX_FAN_MODULE = 5
 MAX_FAN = 2
 
+# THERMAL_SENSOR_LIST
+# index is used to indicate the default temp{}_* under sysfile_path
+# support_mask:  1:support  0:not support
+#   bit 0 : temperature (always 1)
+#   bit 1 : high threshold
+#   bit 2 : low threshold
+#   bit 3 : high critical threshold
+#   bit 4 : low critical threshold
+#   bit 7 :  cpu internal sensor
+# ext_sysfile_list: each specified path of each supported function,
+#   which not follows the (default) genernal naming rule
+#   [0] ext_temp_file : temperature
+#   [1] ext_high_thr : high threshold
+#   [2] ext_low_thr : low threshold
+#   [3] ext_high_cri_thr : high critical threshold
+#   [4] ext_low_cri_thr : low critical threshold
+
+# ['Sensor 1    Top', 'temp_th0_t', 'temp_th0_t_max', 'temp_th0_t_min', 'temp_th0_t_crit', 'temp_th0_t_lcrit'],
+# ['Sensor 1 Bottom', 'temp_th0_b', 'temp_th0_b_max', 'temp_th0_b_min', 'temp_th0_b_crit', 'temp_th0_b_lcrit'],
+# ['Sensor 1 Remote', 'temp_th0_r', 'temp_th0_r_max', 'temp_th0_r_min', 'temp_th0_r_crit', 'temp_th0_r_lcrit'],
+# ['Sensor 2    Top', 'temp_th1_t', 'temp_th1_t_max', 'temp_th1_t_min', 'temp_th1_t_crit', 'temp_th1_t_lcrit'],
+# ['Sensor 2 Bottom', 'temp_th1_b', 'temp_th1_b_max', 'temp_th1_b_min', 'temp_th1_b_crit', 'temp_th1_b_lcrit'],
+# ['Sensor 3    Top', 'temp_th2_t', 'temp_th2_t_max', 'temp_th2_t_min', 'temp_th2_t_crit', 'temp_th2_t_lcrit'],
+# ['Sensor 3 Bottom', 'temp_th2_b', 'temp_th2_b_max', 'temp_th2_b_min', 'temp_th2_b_crit', 'temp_th2_b_lcrit'],
+# ['Sensor 4    Top', 'temp_th3_t', 'temp_th3_t_max', 'temp_th3_t_min', 'temp_th3_t_crit', 'temp_th3_t_lcrit'],
+# ['Sensor 4 Bottom', 'temp_th3_b', 'temp_th3_b_max', 'temp_th3_b_min', 'temp_th3_b_crit', 'temp_th3_b_lcrit'],
 THERMAL_SENSOR_LIST = [
     {
         'name': "pch_haswell",
@@ -28,36 +54,37 @@ THERMAL_SENSOR_LIST = [
         'ext_sysfile_list': None
     },
     {
-        'name': "NCT7511Y(U73)",
-        'temp_index': [1, 2],
+        'name': "FrontRight",
+        'temp_index': [1, 2, 4],
         'sysfile_path': "/sys/class/hwmon/hwmon2/device/NBA715_THERMAL/",
         'support_mask': 0x0F,
-        'ext_sysfile_list': {1: ['temp_r_b_f', 'temp_r_b_f_max', 'temp_r_b_f_min', 'temp_r_b_f_crit', 'temp_r_b_f_lcrit'],
-                             2:['temp_r_b_b', 'temp_r_b_b_max', 'temp_r_b_b_min', 'temp_r_b_b_crit', 'temp_r_b_b_lcrit']}
+        'ext_sysfile_list': {1: ['temp_th0_t', 'temp_th0_t_max', 'temp_th0_t_min', 'temp_th0_t_crit', 'temp_th0_t_lcrit'],
+                             2:['temp_th0_b', 'temp_th0_b_max', 'temp_th0_b_min', 'temp_th0_b_crit', 'temp_th0_b_lcrit'],
+                             4:['temp_th0_r', 'temp_th0_r_max', 'temp_th0_r_min', 'temp_th0_r_crit', 'temp_th0_r_lcrit']}
     },
     {
-        'name': "G781(U94)",
+        'name': "FronLeft",
         'temp_index': [1, 2],
         'sysfile_path': "/sys/class/hwmon/hwmon2/device/NBA715_THERMAL/",
         'support_mask': 0x0F,
-        'ext_sysfile_list': {1: ['temp_l_b_f', 'temp_l_b_f_max', 'temp_l_b_f_min', 'temp_l_b_f_crit', 'temp_l_b_f_lcrit'],
-                             2:['temp_l_b_b', 'temp_l_b_b_max', 'temp_l_b_b_min', 'temp_l_b_b_crit', 'temp_l_b_b_lcrit']}
+        'ext_sysfile_list': {1: ['temp_th1_t', 'temp_th1_t_max', 'temp_th1_t_min', 'temp_th1_t_crit', 'temp_th1_t_lcrit'],
+                             2:['temp_th1_b', 'temp_th1_b_max', 'temp_th1_b_min', 'temp_th1_b_crit', 'temp_th1_b_lcrit']}
     },
     {
-        'name': "G781(U34)",
+        'name': "Back",
         'temp_index': [1, 2],
         'sysfile_path': "/sys/class/hwmon/hwmon2/device/NBA715_THERMAL/",
         'support_mask': 0x0F,
-        'ext_sysfile_list': {1: ['temp_r_t_f', 'temp_r_t_f_max', 'temp_r_t_f_min', 'temp_r_t_f_crit', 'temp_r_t_f_lcrit'],
-                             2:['temp_r_t_b', 'temp_r_t_b_max', 'temp_r_t_b_min', 'temp_r_t_b_crit', 'temp_r_t_b_lcrit']}
+        'ext_sysfile_list': {1: ['temp_th2_t', 'temp_th2_t_max', 'temp_th2_t_min', 'temp_th2_t_crit', 'temp_th2_t_lcrit'],
+                             2:['temp_th2_b', 'temp_th2_b_max', 'temp_th2_b_min', 'temp_th2_b_crit', 'temp_th2_b_lcrit']}
     },
     {
-        'name': "G781(U4)",
+        'name': "ASIC",
         'temp_index': [1, 2],
         'sysfile_path': "/sys/class/hwmon/hwmon2/device/NBA715_THERMAL/",
         'support_mask': 0x0F,
-        'ext_sysfile_list': {1: ['temp_l_t_f', 'temp_l_t_f_max', 'temp_l_t_f_min', 'temp_l_t_f_crit', 'temp_l_t_f_lcrit'],
-                             2:['temp_l_t_b', 'temp_l_t_b_max', 'temp_l_t_b_min', 'temp_l_t_b_crit', 'temp_l_t_b_lcrit']}
+        'ext_sysfile_list': {1: ['temp_th3_t', 'temp_th3_t_max', 'temp_th3_t_min', 'temp_th3_t_crit', 'temp_th3_t_lcrit'],
+                             2:['temp_th3_b', 'temp_th3_b_max', 'temp_th3_b_min', 'temp_th3_b_crit', 'temp_th3_b_lcrit']}
     }
 ]
 
@@ -124,86 +151,6 @@ SFP_GROUP_LIST = ['SFP-G01', 'SFP-G02', 'SFP-G03', 'SFP-G04']
 PORT_NUM = 32
 
 # SFP-eeprom paths /sys/bus/i2c/devices/XX-0050
-
-I2C_DEVICES = {
-    # NCT7511Y sensor & fan control
-    'NCT7511Y(U73)': {
-        'parent': 'viaBMC',
-        'parent_ch': 0,
-        'driver': 'nct7511',
-        'i2caddr': '0x2e',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    # G781 sensors
-    'G781(U94)': {
-        'parent': 'viaBMC',
-        'parent_ch': 1,
-        'driver': 'g781',
-        'i2caddr': '0x4c',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    'G781(U4)': {
-        'parent': 'viaBMC',
-        'parent_ch': 2,
-        'driver': 'g781',
-        'i2caddr': '0x4c',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    'G781(U34)': {
-        'parent': 'viaBMC',
-        'parent_ch': 3,
-        'driver': 'g781',
-        'i2caddr': '0x4c',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    # PSU
-    'PSU1': {
-        'parent': 'viaBMC',
-        'parent_ch': 4,
-        'driver': 'zrh2800k2',
-        'i2caddr': '0x58',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    'PSU2': {
-        'parent': 'viaBMC',
-        'parent_ch': 4,
-        'driver': 'zrh2800k2',
-        'i2caddr': '0x59',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    'TPS53681(0x6C)': {
-        'parent': 'viaBMC',
-        'parent_ch': 5,
-        'driver': 'tps53679',
-        'i2caddr': '0x6c',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    'TPS53681(0x6E)': {
-        'parent': 'viaBMC',
-        'parent_ch': 5,
-        'driver': 'tps53679',
-        'i2caddr': '0x6e',
-        'path': ' ',
-        'status': 'NOTINST'
-    },
-    'TPS53681(0x70)': {
-        'parent': 'viaBMC',
-        'parent_ch': 5,
-        'driver': 'tps53679',
-        'i2caddr': '0x70',
-        'path': ' ',
-        'status': 'NOTINST'
-    }
-}
-
-
 SFP_GROUPS = {
     'SFP-G01': {
         "type": "QSFP28",
@@ -216,7 +163,6 @@ SFP_GROUPS = {
                   "/sys/bus/i2c/devices/11-0050", "/sys/bus/i2c/devices/12-0050",
                   "/sys/bus/i2c/devices/13-0050", "/sys/bus/i2c/devices/14-0050",
                   "/sys/bus/i2c/devices/15-0050", "/sys/bus/i2c/devices/16-0050"],
-        'status': 'NOTINST'
     },
     'SFP-G02': {
         "type": "QSFP28",
@@ -229,7 +175,6 @@ SFP_GROUPS = {
                   "/sys/bus/i2c/devices/19-0050", "/sys/bus/i2c/devices/20-0050",
                   "/sys/bus/i2c/devices/21-0050", "/sys/bus/i2c/devices/22-0050",
                   "/sys/bus/i2c/devices/23-0050", "/sys/bus/i2c/devices/24-0050"],
-        'status': 'NOTINST'
     },
     'SFP-G03': {
         "type": "QSFP28",
@@ -242,7 +187,6 @@ SFP_GROUPS = {
                   "/sys/bus/i2c/devices/27-0050", "/sys/bus/i2c/devices/28-0050",
                   "/sys/bus/i2c/devices/29-0050", "/sys/bus/i2c/devices/30-0050",
                   "/sys/bus/i2c/devices/31-0050", "/sys/bus/i2c/devices/32-0050"],
-        'status': 'NOTINST'
     },
     'SFP-G04': {
         "type": "QSFP28",
@@ -255,7 +199,6 @@ SFP_GROUPS = {
                   "/sys/bus/i2c/devices/35-0050", "/sys/bus/i2c/devices/36-0050",
                   "/sys/bus/i2c/devices/37-0050", "/sys/bus/i2c/devices/38-0050",
                   "/sys/bus/i2c/devices/39-0050", "/sys/bus/i2c/devices/40-0050"],
-        'status': 'NOTINST'
     }
 }
 
@@ -275,47 +218,11 @@ class PlatDev():
     def __init__(self):
         self.plat_name = PLATFORM_NAME
         self.psu_info = copy.deepcopy(PSU_INFO)
-        self.thermal_info = []
         self.fan_info = copy.deepcopy(FAN_INFO)
         self.sfp_info = copy.deepcopy(SFP_GROUPS)
+        self.thermal_info = copy.deepcopy(THERMAL_SENSOR_LIST)
 
-        # get install info
-        # self.sfp_install_info = SFP_GROUPS
-        self.device_install_info = I2C_DEVICES
-
-        # update path info with install info
-        # Item 1/2 not changed, append directly
-        self.thermal_info.append(THERMAL_SENSOR_LIST[0])
-        self.thermal_info.append(THERMAL_SENSOR_LIST[1])
-
-    def __read_attr_file(self, filepath, line=0xFF):
-        try:
-            with open(filepath, 'r') as fd:
-                if line == 0xFF:
-                    data = fd.read()
-                    return data.rstrip('\r\n')
-                else:
-                    data = fd.readlines()
-                    return data[line].rstrip('\r\n')
-        except FileNotFoundError:
-            logger.log_error(f"File {filepath} not found.  Aborting")
-        except OSError as ex:
-            logger.log_error("Cannot open - {}: {}".format(filepath, repr(ex)))
-
-        return None
-
-    def bmc_is_exist(self):
-        bmc_filePath = '/sys/class/hwmon/hwmon2/device/NBA715_SYS/bmc_present'
-        if os.path.exists(bmc_filePath):
-            value = self.__read_attr_file(bmc_filePath)
-            if int(value) == 1:
-                return True
-            else:
-                return False
-        else:
-            return False
     ######Componet method #####
-
     def get_component_count(self):
         return len(CHASSIS_COMPONENTS)
 

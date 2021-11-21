@@ -33,12 +33,16 @@ ssize_t cpld_hw_ver_get(struct device *dev, struct device_attribute *da, char *b
             {
                 status = i2c_smbus_read_byte_data(Netberg_CPLD_23_client, CPLD_VER_REG);
             }
+	    break;
         case 30:
             status = i2c_smbus_read_byte_data(Netberg_CPLD_30_client, CPLD_VER_REG);
+	    break;
         case 31:
             status = i2c_smbus_read_byte_data(Netberg_CPLD_31_client, CPLD_VER_REG);
+	    break;
         case 32:
             status = i2c_smbus_read_byte_data(Netberg_CPLD_32_client, CPLD_VER_REG);
+	    break;
     }
     if(status < 0)
     {
@@ -406,7 +410,7 @@ ssize_t bmc_enable_get(struct device *dev, struct device_attribute *da, char *bu
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_int_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_int_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int result = 0;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -416,7 +420,7 @@ ssize_t themal_int_get(struct device *dev, struct device_attribute *da, char *bu
     sprintf(buf, "");
     switch (attr->index)
     {
-        case TEMP_R_B_INT:
+        case TEMP_TH0_INT:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_REG) & BIT_0_MASK)
             {
                 result = ENABLE;
@@ -426,7 +430,7 @@ ssize_t themal_int_get(struct device *dev, struct device_attribute *da, char *bu
                 result = DISABLE;
             }
             break;
-        case TEMP_L_B_INT:
+        case TEMP_TH1_INT:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_REG) & BIT_1_MASK)
             {
                 result = ENABLE;
@@ -436,7 +440,7 @@ ssize_t themal_int_get(struct device *dev, struct device_attribute *da, char *bu
                 result = DISABLE;
             }
             break;
-        case TEMP_L_T_INT:
+        case TEMP_TH2_INT:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_REG) & BIT_2_MASK)
             {
                 result = ENABLE;
@@ -446,7 +450,7 @@ ssize_t themal_int_get(struct device *dev, struct device_attribute *da, char *bu
                 result = DISABLE;
             }
             break;
-        case TEMP_R_T_INT:
+        case TEMP_TH3_INT:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_REG) & BIT_3_MASK)
             {
                 result = ENABLE;
@@ -462,7 +466,7 @@ ssize_t themal_int_get(struct device *dev, struct device_attribute *da, char *bu
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_int_mask_get(struct device *dev, struct device_attribute *da, char *buf)
+ssize_t thermal_int_mask_get(struct device *dev, struct device_attribute *da, char *buf)
 {
     int result = 0;
     struct sensor_device_attribute *attr = to_sensor_dev_attr(da);
@@ -472,7 +476,7 @@ ssize_t themal_int_mask_get(struct device *dev, struct device_attribute *da, cha
     sprintf(buf, "");
     switch (attr->index)
     {
-        case TEMP_R_B_INT_MASK:
+        case TEMP_TH0_INT_MASK:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_MASK_REG) & BIT_0_MASK)
             {
                 result = ENABLE;
@@ -482,7 +486,7 @@ ssize_t themal_int_mask_get(struct device *dev, struct device_attribute *da, cha
                 result = DISABLE;
             }
             break;
-        case TEMP_L_B_INT_MASK:
+        case TEMP_TH1_INT_MASK:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_MASK_REG) & BIT_1_MASK)
             {
                 result = ENABLE;
@@ -492,7 +496,7 @@ ssize_t themal_int_mask_get(struct device *dev, struct device_attribute *da, cha
                 result = DISABLE;
             }
             break;
-        case TEMP_L_T_INT_MASK:
+        case TEMP_TH2_INT_MASK:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_MASK_REG) & BIT_2_MASK)
             {
                 result = ENABLE;
@@ -502,7 +506,7 @@ ssize_t themal_int_mask_get(struct device *dev, struct device_attribute *da, cha
                 result = DISABLE;
             }
             break;
-        case TEMP_R_T_INT_MASK:
+        case TEMP_TH3_INT_MASK:
             if (i2c_smbus_read_byte_data(Netberg_CPLD_30_client, THERMAL_INT_MASK_REG) & BIT_3_MASK)
             {
                 result = ENABLE;
@@ -518,7 +522,7 @@ ssize_t themal_int_mask_get(struct device *dev, struct device_attribute *da, cha
     return sprintf(buf, "%s\n", buf);
 }
 
-ssize_t themal_int_mask_set(struct device *dev, struct device_attribute *da, const char *buf, size_t count)
+ssize_t thermal_int_mask_set(struct device *dev, struct device_attribute *da, const char *buf, size_t count)
 {
     int status = -EPERM;
     int value  = -EPERM;
@@ -533,7 +537,7 @@ ssize_t themal_int_mask_set(struct device *dev, struct device_attribute *da, con
     input = simple_strtol(buf, NULL, 10);
     switch (attr->index)
     {
-        case TEMP_R_B_INT_MASK:
+        case TEMP_TH0_INT_MASK:
             if (input == ENABLE)
             {
                 value = status | 0x01;
@@ -544,11 +548,11 @@ ssize_t themal_int_mask_set(struct device *dev, struct device_attribute *da, con
             }
             else
             {
-                printk(KERN_ALERT "themal_int_mask_set wrong Value\n");
+                printk(KERN_ALERT "thermal_int_mask_set wrong Value\n");
                 return count;
             }
             break;
-        case TEMP_L_B_INT_MASK:
+        case TEMP_TH1_INT_MASK:
             if (input == ENABLE)
             {
                 value = status | 0x02;
@@ -559,11 +563,11 @@ ssize_t themal_int_mask_set(struct device *dev, struct device_attribute *da, con
             }
             else
             {
-                printk(KERN_ALERT "themal_int_mask_set wrong Value\n");
+                printk(KERN_ALERT "thermal_int_mask_set wrong Value\n");
                 return count;
             }
             break;
-        case TEMP_L_T_INT_MASK:
+        case TEMP_TH2_INT_MASK:
             if (input == ENABLE)
             {
                 value = status | 0x04;
@@ -574,11 +578,11 @@ ssize_t themal_int_mask_set(struct device *dev, struct device_attribute *da, con
             }
             else
             {
-                printk(KERN_ALERT "themal_int_mask_set wrong Value\n");
+                printk(KERN_ALERT "thermal_int_mask_set wrong Value\n");
                 return count;
             }
             break;
-        case TEMP_R_T_INT_MASK:
+        case TEMP_TH3_INT_MASK:
             if (input == ENABLE)
             {
                 value = status | 0x08;
@@ -589,7 +593,7 @@ ssize_t themal_int_mask_set(struct device *dev, struct device_attribute *da, con
             }
             else
             {
-                printk(KERN_ALERT "themal_int_mask_set wrong Value\n");
+                printk(KERN_ALERT "thermal_int_mask_set wrong Value\n");
                 return count;
             }
             break;

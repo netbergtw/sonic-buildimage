@@ -9,31 +9,12 @@ MAX_FAN_NUM = 5
 MAX_PSU_NUM = 2
 PSU_LIST = ['PSU1', 'PSU2']  # 0x58, 0x59
 
-THERMAL_SENSOR_LIST = ['NCT7511Y(U73)', 'G781(U94)', 'G781(U34)', 'G781(U4)']
-
 BMC_SYSFILE_PATH = '/sys/class/hwmon/hwmon2/device/NBA715_SYS/'
 FAN_SYSFILE_PATH = '/sys/class/hwmon/hwmon2/device/NBA715_FAN/'
 POWER_SYSFILE_PATH = '/sys/class/hwmon/hwmon2/device/NBA715_POWER/'
 THERMAL_SYSFILE_PATH = '/sys/class/hwmon/hwmon2/device/NBA715_THERMAL/'
 
-
-def get_thermal_sensor_path():
-    sensor_path = []
-    try:
-        with open(PLATFORM_INSTALL_INFO_FILE) as fd:
-            install_info = json.load(fd)
-            for sensor_name in THERMAL_SENSOR_LIST:
-                sensor = install_info[1][sensor_name]
-                sensor_path.append(sensor['hwmon_path']+'/')
-            return sensor_path
-    except Exception:
-        print("Fail to get sensor sysfsfile path")
-
-    return sensor_path
-
 # Get sysfs attribute
-
-
 def get_attr_value(attr_path):
     retval = 'ERR'
     if not os.path.isfile(attr_path):
@@ -66,29 +47,31 @@ def print_attr_value_lines(sys_path):
 
 
 def show_sensor_table():
+    headers = ['Sensor', 'Temperature(C)', 'High(C)',
+               'Low(C)', 'Critical High(C)', 'Critical Low(C)']
 
-    headers = ['Sensor', 'Temperature', 'High',
-               'Low', 'Critical High', 'Critical Low']
     table = list()
     temp = list()
 
     sensor_table = [
-        ['Right Bottom Front', 'temp_r_b_f', 'temp_r_b_f_max',
-         'temp_r_b_f_min', 'temp_r_b_f_crit', 'temp_r_b_f_lcrit'],
-        ['Right Bottom Back', 'temp_r_b_b', 'temp_r_b_b_max',
-         'temp_r_b_b_min', 'temp_r_b_b_crit', 'temp_r_b_b_lcrit'],
-        ['Left Bottom Front', 'temp_l_b_f', 'temp_l_b_f_max',
-         'temp_l_b_f_min', 'temp_l_b_f_crit', 'temp_l_b_f_lcrit'],
-        ['Left Bottom Back', 'temp_l_b_b', 'temp_l_b_b_max',
-         'temp_l_b_b_min', 'temp_l_b_b_crit', 'temp_l_b_b_lcrit'],
-        ['Right Top Front', 'temp_r_t_f', 'temp_r_t_f_max',
-         'temp_r_t_f_min', 'temp_r_t_f_crit', 'temp_r_t_f_lcrit'],
-        ['Right Top Back Sensor', 'temp_r_t_b', 'temp_r_t_b_max',
-         'temp_r_t_b_min', 'temp_r_t_b_crit', 'temp_r_t_b_lcrit'],
-        ['Left Top Front Sensor', 'temp_l_t_f', 'temp_l_t_f_max',
-         'temp_l_t_f_min', 'temp_l_t_f_crit', 'temp_l_t_f_lcrit'],
-        ['Left Top Back Sensor', 'temp_l_t_b', 'temp_l_t_b_max',
-         'temp_l_t_b_min', 'temp_l_t_b_crit', 'temp_l_t_b_lcrit'],
+        ['TH0 (Front Right)    Top', 'temp_th0_t', 'temp_th0_t_max',
+         'temp_th0_t_min', 'temp_th0_t_crit', 'temp_th0_t_lcrit'],
+        ['TH0 (Front Right) Bottom', 'temp_th0_b', 'temp_th0_b_max',
+         'temp_th0_b_min', 'temp_th0_b_crit', 'temp_th0_b_lcrit'],
+        ['TH0 (Remote)            ', 'temp_th0_r', 'temp_th0_r_max',
+         'temp_th0_r_min', 'temp_th0_r_crit', 'temp_th0_r_lcrit'],
+        ['TH1 (Front Left)     Top', 'temp_th1_t', 'temp_th1_t_max',
+         'temp_th1_t_min', 'temp_th1_t_crit', 'temp_th1_t_lcrit'],
+        ['TH1 (Front Left)  Bottom', 'temp_th1_b', 'temp_th1_b_max',
+         'temp_th1_b_min', 'temp_th1_b_crit', 'temp_th1_b_lcrit'],
+        ['TH2 (Back)           Top', 'temp_th2_t', 'temp_th2_t_max',
+         'temp_th2_t_min', 'temp_th2_t_crit', 'temp_th2_t_lcrit'],
+        ['TH2 (Back)        Bottom', 'temp_th2_b', 'temp_th2_b_max',
+         'temp_th2_b_min', 'temp_th2_b_crit', 'temp_th2_b_lcrit'],
+        ['TH3 (ASIC)           Top', 'temp_th3_t', 'temp_th3_t_max',
+         'temp_th3_t_min', 'temp_th3_t_crit', 'temp_th3_t_lcrit'],
+        ['TH3 (ASIC)        Bottom', 'temp_th3_b', 'temp_th3_b_max',
+         'temp_th3_b_min', 'temp_th3_b_crit', 'temp_th3_b_lcrit'],
     ]
 
     for index in range(len(sensor_table)):
@@ -101,7 +84,7 @@ def show_sensor_table():
             else:
                 if t.isdigit():
                     t = int(t)/1000.0
-                temp.append('{} C'.format(t))
+                temp.append('{}'.format(t))
 
         table.append([name, temp[0], temp[1], temp[2], temp[3], temp[4]])
         del temp[:]
@@ -152,9 +135,9 @@ def fan_power(index):
     sys_path = FAN_SYSFILE_PATH + 'fan{}_power'.format(index)
     ret = get_attr_value(sys_path)
     if ret == '1':
-        return 'On'
+        return 'OK'
     elif ret == '0':
-        return 'Off'
+        return 'NG'
     else:
         return 'N/A'
 
@@ -164,15 +147,11 @@ def fan_speed_dual(index):
     front_ret = get_attr_value(sys_path)
     if front_ret == 'ERR':
         front_ret = 'N/A'
-    else:
-        front_ret = front_ret+'RPM'
-
+ 
     sys_path = FAN_SYSFILE_PATH + 'fan{}_rear_rpm'.format(index)
     rear_ret = get_attr_value(sys_path)
     if rear_ret == 'ERR':
         rear_ret = 'N/A'
-    else:
-        rear_ret = rear_ret+'RPM'
 
     return (front_ret, rear_ret)
 
@@ -225,7 +204,6 @@ def show_psu_table():
     print(headers)
     print(table)
     print('')
-
 
 def get_psu_status(index, sysfile_list):
     # result_list: [name, presence, power, fanSpeed(RPM), temperature(C), vin(V), vout(V), pin(W), pout(W), iin(A), iout(A), maxIout(A)]

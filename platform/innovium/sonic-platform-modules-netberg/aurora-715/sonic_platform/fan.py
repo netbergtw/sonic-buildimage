@@ -36,9 +36,8 @@ class Fan(FanBase):
                 if line == 0xFF:
                     data = fd.read()
                     return data.rstrip('\r\n')
-                else:
-                    data = fd.readlines()
-                    return data[line].rstrip('\r\n')
+                data = fd.readlines()
+                return data[line].rstrip('\r\n')
         except FileNotFoundError:
             logger.log_error(f"File {filepath} not found.  Aborting")
         except OSError as ex:
