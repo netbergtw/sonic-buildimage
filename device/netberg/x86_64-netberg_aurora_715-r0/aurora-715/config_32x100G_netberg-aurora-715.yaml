@@ -9,6 +9,8 @@ nodes:
     - auto_create: "no"
       multi_interface: "yes"
     buffer_management_mode: "api_driven"
+    wred_cr_ip_proto_list: "17"
+    cr_assignment_mode: "1"
     max_lossless_tc: "2"
     skip_pll_check: "false"
     ilpm_enable: "1"
@@ -392,6 +394,4 @@ nodes:
     rx_polarity: "01101000"
     lane_swap: "64572103"      
     pre1: "-3, -3, -3, -3, -3, -3, -3, -3"
-    main: "20, 20, 20, 20, 20, 20, 20, 20"     
-
-
+    main: "20, 20, 20, 20, 20, 20, 20, 20"
