@@ -8,7 +8,7 @@ PACKAGE_PRE_NAME := sonic-platform-netberg
 KVERSION   ?= $(shell uname -r)
 KERNEL_SRC :=  /lib/modules/$(KVERSION)
 MOD_SRC_DIR:= $(shell pwd)
-MODULE_DIRS:= aurora-715
+MODULE_DIRS:= aurora-715 aurora-615
 MODULE_DIR := modules
 
 %:

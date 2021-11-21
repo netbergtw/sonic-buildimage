@@ -8,3 +8,8 @@ Standards-Version: 3.9.3
 Package: sonic-platform-netberg-aurora-715
 Architecture: amd64
 Description: kernel modules for platform devices such as fan, led, sfp
+
+Package: sonic-platform-netberg-aurora-615
+Architecture: amd64
+Description: kernel modules for platform devices such as fan, led, sfp
+
