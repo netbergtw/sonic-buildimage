@@ -11,7 +11,6 @@ try:
     import subprocess
     from sonic_platform_base.chassis_base import ChassisBase
     from sonic_platform.platDev import PlatDev
-    from sonic_platform.fan import Fan
     from sonic_platform.fan_drawer import FanDrawer
     from sonic_platform.psu import Psu
     from sonic_platform.sfp import Sfp
@@ -61,7 +60,8 @@ class Chassis(ChassisBase):
             fanlist = self.platdev.get_fan_list()
             for index in range(0, len(fanlist)):
                 fan_name = fanlist[index]
-                fandrawer = FanDrawer(index,self.platdev.get_fan_num_by_name(fan_name),[self.platdev.get_fan_sysfile_path_by_name(fan_name),''])
+                fandrawer = FanDrawer(index, self.platdev.get_fan_num_by_name(fan_name), [
+                    self.platdev.get_fan_sysfile_path_by_name(fan_name), ''])
                 self._fan_drawer_list.append(fandrawer)
                 self._fan_list.extend(fandrawer._fan_list)
 
@@ -74,7 +74,7 @@ class Chassis(ChassisBase):
 
         # init thermal list
         thermal_info_list = self.platdev.get_thermal_dev_info_all()
-        
+
         for index in range(0, len(thermal_info_list)):
             if len(self.platdev.get_thermal_dev_tempidx_by_idx(index)) > 1:
                 for idx in self.platdev.get_thermal_dev_tempidx_by_idx(index):

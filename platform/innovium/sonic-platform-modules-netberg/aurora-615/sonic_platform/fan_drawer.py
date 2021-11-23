@@ -9,7 +9,6 @@ class FanDrawer(FanDrawerBase):
     """ Platform-specific Fan class"""
 
     def __init__(self, fantray_index, nums, attr_path):
-
         FanDrawerBase.__init__(self)
         self.fantrayindex = fantray_index
         for i in range(nums):

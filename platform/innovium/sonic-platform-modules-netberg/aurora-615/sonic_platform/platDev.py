@@ -6,9 +6,7 @@ try:
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
-logger = Logger("paltDev")
-PLATFORM_INSTALL_INFO_FILE = "/etc/sonic/platform_install.json"
-PLATFORM_NAME = "aurora_615"
+logger = Logger("platDev")
 MAX_FAN_MODULE = 5
 MAX_FAN = 2
 
@@ -149,104 +147,103 @@ PORT_NUM = 56
 
 # SFP-eeprom paths /sys/bus/i2c/devices/XX-0050
 SFP_GROUPS = {
-    'SFP-G01' :{
+    'SFP-G01': {
         "type": "SFP+",
         'number': 8,
-        'parent':'PCA9548_0x71_1',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe2',
+        'parent': 'PCA9548_0x71_1',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe2',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/9-0050", "/sys/bus/i2c/devices/10-0050",
                   "/sys/bus/i2c/devices/11-0050", "/sys/bus/i2c/devices/12-0050",
                   "/sys/bus/i2c/devices/13-0050", "/sys/bus/i2c/devices/14-0050",
                   "/sys/bus/i2c/devices/15-0050", "/sys/bus/i2c/devices/16-0050"],
-        'status':'NOTINST'
+        'status': 'NOTINST'
     },
-    'SFP-G02' :{
+    'SFP-G02': {
         "type": "SFP+",
         'number': 8,
-        'parent':'PCA9548_0x71_2',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe2',
+        'parent': 'PCA9548_0x71_2',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe2',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/17-0050", "/sys/bus/i2c/devices/18-0050",
                   "/sys/bus/i2c/devices/19-0050", "/sys/bus/i2c/devices/20-0050",
                   "/sys/bus/i2c/devices/21-0050", "/sys/bus/i2c/devices/22-0050",
                   "/sys/bus/i2c/devices/23-0050", "/sys/bus/i2c/devices/24-0050"],
-        'status':'NOTINST'
+        'status': 'NOTINST'
     },
-    'SFP-G03' :{
+    'SFP-G03': {
         "type": "SFP+",
         'number': 8,
-        'parent':'PCA9548_0x71_3',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe2',
+        'parent': 'PCA9548_0x71_3',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe2',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/25-0050", "/sys/bus/i2c/devices/26-0050",
                   "/sys/bus/i2c/devices/27-0050", "/sys/bus/i2c/devices/28-0050",
                   "/sys/bus/i2c/devices/29-0050", "/sys/bus/i2c/devices/30-0050",
                   "/sys/bus/i2c/devices/31-0050", "/sys/bus/i2c/devices/32-0050"],
-        'status':'NOTINST'
+        'status': 'NOTINST'
     },
-    'SFP-G04' :{
+    'SFP-G04': {
         "type": "SFP+",
         'number': 8,
-        'parent':'PCA9548_0x71_4',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe2',
+        'parent': 'PCA9548_0x71_4',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe2',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/33-0050", "/sys/bus/i2c/devices/34-0050",
                   "/sys/bus/i2c/devices/35-0050", "/sys/bus/i2c/devices/36-0050",
                   "/sys/bus/i2c/devices/37-0050", "/sys/bus/i2c/devices/38-0050",
                   "/sys/bus/i2c/devices/39-0050", "/sys/bus/i2c/devices/40-0050"],
 
-        'status':'NOTINST'
+        'status': 'NOTINST'
     },
-    'SFP-G05' :{
+    'SFP-G05': {
         "type": "SFP+",
         'number': 8,
-        'parent':'PCA9548_0x71_5',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe2',
+        'parent': 'PCA9548_0x71_5',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe2',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/41-0050", "/sys/bus/i2c/devices/42-0050",
                   "/sys/bus/i2c/devices/43-0050", "/sys/bus/i2c/devices/44-0050",
                   "/sys/bus/i2c/devices/45-0050", "/sys/bus/i2c/devices/46-0050",
                   "/sys/bus/i2c/devices/47-0050", "/sys/bus/i2c/devices/48-0050"],
 
-        'status':'NOTINST'
+        'status': 'NOTINST'
     },
-    'SFP-G06' :{
+    'SFP-G06': {
         "type": "SFP+",
         'number': 8,
-        'parent':'PCA9548_0x71_6',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe2',
+        'parent': 'PCA9548_0x71_6',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe2',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/49-0050", "/sys/bus/i2c/devices/50-0050",
                   "/sys/bus/i2c/devices/51-0050", "/sys/bus/i2c/devices/52-0050",
                   "/sys/bus/i2c/devices/53-0050", "/sys/bus/i2c/devices/54-0050",
                   "/sys/bus/i2c/devices/55-0050", "/sys/bus/i2c/devices/56-0050"],
 
-        'status':'NOTINST'
+        'status': 'NOTINST'
     },
-    'SFP-G07' :{
+    'SFP-G07': {
         "type": "QSFP28",
         'number': 8,
-        'parent':'PCA9548_0x71_7',
-        'channels':[0,1,2,3,4,5,6,7],
-        'driver':'optoe1',
+        'parent': 'PCA9548_0x71_7',
+        'channels': [0, 1, 2, 3, 4, 5, 6, 7],
+        'driver': 'optoe1',
         'i2caddr': '0x50',
         'paths': ["/sys/bus/i2c/devices/57-0050", "/sys/bus/i2c/devices/58-0050",
                   "/sys/bus/i2c/devices/59-0050", "/sys/bus/i2c/devices/60-0050",
                   "/sys/bus/i2c/devices/61-0050", "/sys/bus/i2c/devices/62-0050",
                   "/sys/bus/i2c/devices/63-0050", "/sys/bus/i2c/devices/64-0050"],
 
-        'status':'NOTINST'
+        'status': 'NOTINST'
     }
 }
 
-#
 # Component
 # ["Master-CPLD", ("Used for managing Fan, PSU, system LEDs, QSFP "
 #                  "modules (1-16)")],
@@ -261,7 +258,6 @@ CHASSIS_COMPONENTS = [
 
 class PlatDev():
     def __init__(self):
-        self.plat_name = PLATFORM_NAME
         self.psu_info = copy.deepcopy(PSU_INFO)
         self.fan_info = copy.deepcopy(FAN_INFO)
         self.sfp_info = copy.deepcopy(SFP_GROUPS)

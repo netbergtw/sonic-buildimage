@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 
 try:
-    import os
     import copy
     from sonic_py_common.logger import Logger
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
 logger = Logger("platDev")
-PLATFORM_NAME = "aurora-715"
 MAX_FAN_MODULE = 5
 MAX_FAN = 2
 
@@ -216,7 +214,6 @@ CHASSIS_COMPONENTS = [
 
 class PlatDev():
     def __init__(self):
-        self.plat_name = PLATFORM_NAME
         self.psu_info = copy.deepcopy(PSU_INFO)
         self.fan_info = copy.deepcopy(FAN_INFO)
         self.sfp_info = copy.deepcopy(SFP_GROUPS)
