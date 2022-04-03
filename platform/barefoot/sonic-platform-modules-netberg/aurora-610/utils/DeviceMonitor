@@ -1,0 +1,192 @@
+#!/usr/bin/env python2
+"""
+	PSU information update deamon for SONiC
+"""
+
+try:
+    import getopt
+    import os
+    import imp
+    import signal
+    import subprocess
+    import sys
+    import syslog
+    import time
+    import threading
+except ImportError, e:
+    raise ImportError (str(e)+ " , module not found")
+
+##### contents #####
+
+SYSLOG_IDENTIFIER=os.path.basename(__file__)
+
+PLATFORM_SPECIFIC_MODULE_NAME = "psuutil"
+PLATFORM_SPECIFIC_CLASS_NAME = "PsuUtil"
+platform_psuutil=None
+
+PLATFORM_NAME = "x86_64-netberg_aurora-610-r0"
+PLATFORM_ROOT = "/usr/share/sonic/device"
+FAN_DATA_PATH = "/tmp/psoc/fan_gpi"
+CPLD_PATH = "/sys/bus/i2c/devices/0-0077/"
+FAN_SPEED_PATH = "psoc/fan{}_input"
+NUM_OF_FANS = 4
+FAN_LOG_FREQUECY = 50
+
+##### LOG #####
+
+def log_info(msg, print_to_console=True):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_INFO, msg)
+    syslog.closelog()
+
+    if(print_to_console):
+        print msg
+
+def log_warning(msg, print_to_console=True):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_WARNING, msg)
+    syslog.closelog()
+
+    if(print_to_console):
+        print msg
+
+def log_error(msg, print_to_console=True):
+    syslog.openlog(SYSLOG_IDENTIFIER)
+    syslog.syslog(syslog.LOG_ERR, msg)
+    syslog.closelog()
+
+    if(print_to_console):
+        print msg
+
+##### Signal hadling #####
+
+def signal_handler(sig,frame):
+    if sig == signal.SIGHUP:
+        log_info("Caught SIGHUP, ignore")
+        return
+    elif sig == signal.SIGINT:
+        log_info("Caught SIGINT, exit")
+        sys.exit(128+sig)
+    elif sig == signa.SIGTERM:
+        log_info("Caught SIGTERM, exit")
+        sys.exit(128+sig)		
+    else:
+        log_warning("Caught unhandled signal: "+ sig)
+        return
+
+#Load psuutil modules
+def load_platform_psuutil():
+    global platform_psuutil
+
+    platform_path = "/".join([PLATFORM_ROOT,PLATFORM_NAME])
+
+    try:
+        module_file = "/".join([platform_path, "plugins", PLATFORM_SPECIFIC_MODULE_NAME + ".py"])
+        module = imp.load_source(PLATFORM_SPECIFIC_MODULE_NAME, module_file)
+    except IOError, e:
+        log_error("Failed to load platform module '%s': %s" % (PLATFORM_SPECIFIC_MODULE_NAME, str(e)), True)
+        return -1
+
+    try:
+        platform_psuutil_class = getattr(module, PLATFORM_SPECIFIC_CLASS_NAME)
+        platform_psuutil = platform_psuutil_class()
+    except AttributeError, e:
+        log_error("Failed to instantiate '%s' class: %s" % (PLATFORM_SPECIFIC_CLASS_NAME, str(e)), True)
+        return -2
+
+    return 0
+
+def get_status_string(path):
+    process = subprocess.Popen( ["cat",path],
+        stdout=subprocess.PIPE,
+        shell=False,
+        stderr=subprocess.STDOUT)
+    stdout = process.communicate()[0].rstrip('\n')	
+    return stdout
+
+
+##### MAIN #####
+def main():
+    log_info("DeviceMonitor start...")
+
+    signal.signal(signal.SIGHUP, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    #load platform specific psuutil class
+    log_info("Loading psuutil...")
+    err=load_platform_psuutil()
+    if err!= 0:
+        log_error("Failed!")
+        sys.exit(1)
+    else:
+        log_info("Succeed!")
+
+    psu_state=[]
+    psu_status=[]
+    for i in range(0,2):
+        psu_state.insert( i,platform_psuutil.get_psu_presence(i+1) )
+        psu_status.insert( i,platform_psuutil.get_psu_status(i+1) )
+    stdout=get_status_string(FAN_DATA_PATH)
+    fan_state=int(stdout,16) >> 4
+    fan_speed_check=[]
+    for i in range(NUM_OF_FANS):
+        fan_speed_check.append(0)
+
+    while True:
+        for i in range(0,2):
+            temp=platform_psuutil.get_psu_presence(i+1)
+            if temp!= psu_state[i]:
+                if temp == True:
+                    path=CPLD_PATH+"psu"+str(i)
+                    stdout=get_status_string(path)
+                    log_info("Put in psu-%d, status:%s" %(i+1,stdout[3:]))
+                    psu_status[i]=platform_psuutil.get_psu_status(i+1)
+                elif temp == False:
+                    log_info("psu-%d removed" %(i+1))
+                psu_state[i]=temp
+            elif temp==True:
+                temp=platform_psuutil.get_psu_status(i+1)
+                if temp!= psu_status[i]:
+                    path=CPLD_PATH+"psu"+str(i)
+                    stdout=get_status_string(path)
+                    log_info("psu-%d status changed to %s" %(i+1,stdout[3:]))	
+                    psu_status[i]=temp			
+ 
+        #start fan test
+        stdout=get_status_string(FAN_DATA_PATH)
+        temp=int(stdout,16) >> 4
+        if temp!=fan_state:
+            for i in range(0,4):
+                bit1=(fan_state>>i)&1
+                bit2=(temp>>i)&1
+                if (bit1 ^ bit2):
+                    if bit2==0:
+                        log_info("fan-%d is plugged" %(i+1))
+                    elif bit2==1:
+                        log_info("fan-%d is removed" %(i+1))
+            fan_state=temp
+
+        #check fan stuck
+        for i in range(NUM_OF_FANS):
+            fan_presence=not((int(stdout,16) >> i)&1)
+            if fan_presence:
+                fan_rpm_path = "/".join([PLATFORM_ROOT,PLATFORM_NAME,FAN_SPEED_PATH])
+                path1=fan_rpm_path.format(2*i+1)
+                path2=fan_rpm_path.format(2*i+2)
+                rpm1=get_status_string(path1)
+                rpm2=get_status_string(path2)
+
+                if (int(rpm1)==0 or int(rpm2)==0):
+                    fan_speed_check[i]+=1
+                    fan_speed_check[i]%=FAN_LOG_FREQUECY
+                    if fan_speed_check[i]==2:
+                        log_warning("fan-%d speed 0" % (i+1))
+                else:
+                    fan_speed_check[i]=0
+
+        time.sleep(0.7)
+
+if __name__ == '__main__': 
+    main()
+
