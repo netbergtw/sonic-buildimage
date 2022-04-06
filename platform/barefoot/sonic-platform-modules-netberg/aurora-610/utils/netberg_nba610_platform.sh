@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Install aurora-715 python package
+# Install Netberg Aurora python package
 DEVICE="/usr/share/sonic/device"
 PLATFORM=$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
 
