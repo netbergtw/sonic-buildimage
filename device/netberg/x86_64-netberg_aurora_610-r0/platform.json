@@ -32,7 +32,7 @@
             "name" : "drawer4"
           }
         ],
-      "name" : "Aurora 610",
+      "name" : "aurora-610",
       "psus" : [ 
           { 
             "fans" : [ { "name" : "psu1_fan1" } ],
