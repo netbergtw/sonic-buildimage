@@ -88,7 +88,7 @@ def show_help():
            
 def show_log(txt):
     if DEBUG == True:
-        print "[D7032]"+txt    
+        print "[nba610]"+txt    
     return
     
 def exec_cmd(cmd, show):
@@ -111,7 +111,7 @@ instantiate =[
 #'echo pca9548 0x72> /sys/bus/i2c/devices/i2c-0/i2c-6/new_device',
 #'echo pca9548 0x72> /sys/bus/i2c/devices/i2c-0/i2c-7/new_device',
 #'echo pca9548 0x72> /sys/bus/i2c/devices/i2c-0/i2c-8/new_device',
-'echo net_eeprom 0x53 > /sys/bus/i2c/devices/i2c-0/new_device']
+#'echo net_eeprom 0x53 > /sys/bus/i2c/devices/i2c-0/new_device']
 #'echo net_psoc 0x66> /sys/bus/i2c/devices/i2c-0/new_device',
 #'echo net_cpld 0x55> /sys/bus/i2c/devices/i2c-0/new_device']
 
@@ -121,11 +121,9 @@ drivers =[
 'i2c-mux',
 'i2c-mux-pca954x',
 'i2c-dev',
-'net_eeprom',
 'net_platform',
 'net_psoc',
 'net_cpld',
-'net_pthread',
 'swps']
  
 
@@ -185,7 +183,7 @@ def system_install():
         status, output =exec_cmd("echo sff8436 0x50 > /sys/bus/i2c/devices/i2c-0/i2c-7/i2c-"+str(i)+"/new_device", 1)
         if status:
             print output
-            if FORCE == 0:
+           if FORCE == 0:
                 return status
     for i in range(58,64):
         status, output =exec_cmd("echo sff8436 0x50 > /sys/bus/i2c/devices/i2c-0/i2c-8/i2c-"+str(i)+"/new_device", 1)
