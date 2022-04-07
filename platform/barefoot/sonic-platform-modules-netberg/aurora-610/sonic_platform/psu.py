@@ -6,7 +6,6 @@
 #
 
 try:
-    import os
     from sonic_platform_base.psu_base import PsuBase
     from sonic_py_common.logger import Logger
     from sonic_platform.fan import Fan, FanConst
@@ -16,8 +15,9 @@ except ImportError as e:
 VOLTAGE_UPPER_LIMIT = 14
 VOLTAGE_LOWER_LIMIT = 10
 
-PSU_SYS_FS = "/sys/class/hwmon/hwmon1/device/"
+PSU_SYS_FS = "/sys/devices/virtual/hwmon/hwmon2/device/"
 logger = Logger('sonic-platform-psu')
+
 
 class Psu(PsuBase):
 
@@ -27,11 +27,16 @@ class Psu(PsuBase):
     def __init__(self, index):
         self.__index = index
         self.__psu_presence_attr = PSU_SYS_FS+"psu{}".format(self.__index + 1)
-        self.__psu_voltage_out_attr = PSU_SYS_FS +"psoc_psu{}_vout".format(self.__index + 1)
-        self.__psu_current_out_attr = PSU_SYS_FS+"psoc_psu{}_iout".format(self.__index + 1)
-        self.__psu_power_out_attr = PSU_SYS_FS+"psoc_psu{}_pout".format(self.__index + 1)
-        self.__psu_model_attr = PSU_SYS_FS+"psoc_psu{}_vendor".format(self.__index + 1)
-        self.__psu_serial_attr = PSU_SYS_FS+"psoc_psu{}_serial".format(self.__index + 1)
+        self.__psu_voltage_out_attr = PSU_SYS_FS + \
+            "psoc_psu{}_vout".format(self.__index + 1)
+        self.__psu_current_out_attr = PSU_SYS_FS + \
+            "psoc_psu{}_iout".format(self.__index + 1)
+        self.__psu_power_out_attr = PSU_SYS_FS + \
+            "psoc_psu{}_pout".format(self.__index + 1)
+        self.__psu_model_attr = PSU_SYS_FS + \
+            "psoc_psu{}_vendor".format(self.__index + 1)
+        self.__psu_serial_attr = PSU_SYS_FS + \
+            "psoc_psu{}_serial".format(self.__index + 1)
 
         # Get the start index of fan list
         self.__fan_psu_start_index = self.__index + FanConst().FAN_PSU_START_INDEX
@@ -141,8 +146,7 @@ class Psu(PsuBase):
         attr_rv = self.__get_attr_value(attr_path)
         if attr_rv != 'ERR':
             return attr_rv == attr_normal
-        else:
-            raise SyntaxError
+        raise SyntaxError
 
 ##############################################
 # PSU methods

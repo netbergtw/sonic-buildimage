@@ -6,7 +6,6 @@
 #
 
 try:
-    import os
     import re
     from sonic_platform_base.chassis_base import ChassisBase
     from sonic_platform.eeprom import Eeprom
@@ -49,7 +48,6 @@ class Chassis(ChassisBase):
             self._fan_drawer_list.append(fandrawer)
             self._fan_list.extend(fandrawer._fan_list)
 
-
         # Initialize PSU
         for index in range(self.__num_of_psus):
             psu = Psu(index)
@@ -89,7 +87,6 @@ class Chassis(ChassisBase):
 ##############################################
 # Device methods
 ##############################################
-
 
     def get_name(self):
         """
@@ -189,7 +186,7 @@ class Chassis(ChassisBase):
         prev_sw_reboot_cause = self.__read_txt_file(
             prev_reboot_cause_path) or "Unknown"
 
-        if sw_reboot_cause == "Unknown" and (prev_sw_reboot_cause == "Unknown" or prev_sw_reboot_cause == self.REBOOT_CAUSE_POWER_LOSS):
+        if sw_reboot_cause == "Unknown" and prev_sw_reboot_cause in ("Unknown", self.REBOOT_CAUSE_POWER_LOSS):
             reboot_cause = self.REBOOT_CAUSE_POWER_LOSS
             description = prev_sw_reboot_cause
         elif sw_reboot_cause != "Unknown":
@@ -245,7 +242,6 @@ class Chassis(ChassisBase):
                                     add_num = int(rc.group("num"))
                                     port_dict[add_num] = "1"
                                 return True, {'sfp': port_dict}
-                            else:
-                                return False, {'sfp': port_dict}
+                            return False, {'sfp': port_dict}
                         else:
                             pass

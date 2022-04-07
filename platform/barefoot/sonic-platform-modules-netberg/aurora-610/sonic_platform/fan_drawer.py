@@ -20,4 +20,3 @@ class FanDrawer(FanDrawerBase):
             string: The name of the device
         """
         return "FanTray{}".format(self.fantrayindex+1)
-

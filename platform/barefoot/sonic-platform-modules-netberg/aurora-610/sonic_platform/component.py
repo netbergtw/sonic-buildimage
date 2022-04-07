@@ -16,10 +16,10 @@ CPLD_INFO_PATH = "/sys/bus/i2c/devices/0-0077/info"
 BIOS_VER_PATH = "/sys/class/dmi/id/bios_version"
 BIOS_CS_PATH = "/sys/bus/i2c/devices/0-0077/bios_cs"
 
-CPLD_INDEX         = 0
-BMC_INDEX          = 1
-MAIN_BIOS_INDEX    = 2
-BACKUP_BIOS_INDEX  = 3
+CPLD_INDEX = 0
+BMC_INDEX = 1
+MAIN_BIOS_INDEX = 2
+BACKUP_BIOS_INDEX = 3
 
 
 COMPONENT_NAME_LIST = [
@@ -38,10 +38,10 @@ COMPONENT_DESC_LIST = [
 
 
 FW_INSTALL_CMD_LIST = [
-        "/usr/share/sonic/platform/plugins/cpld -b 1 -s 0x60 {}",
-        "/usr/share/sonic/platform/plugins/Yafuflash -cd {} -img-select 3 -non-interactive",
-        "/usr/share/sonic/platform/plugins/afulnx_64 {} /B /P /N /K",
-        "/usr/share/sonic/platform/plugins/afulnx_64 {} /B /P /N /K",
+    "/usr/share/sonic/platform/plugins/cpld -b 1 -s 0x60 {}",
+    "/usr/share/sonic/platform/plugins/Yafuflash -cd {} -img-select 3 -non-interactive",
+    "/usr/share/sonic/platform/plugins/afulnx_64 {} /B /P /N /K",
+    "/usr/share/sonic/platform/plugins/afulnx_64 {} /B /P /N /K",
 ]
 
 BIOS_ID_MAPPING_TABLE = {
@@ -49,19 +49,20 @@ BIOS_ID_MAPPING_TABLE = {
     1: BACKUP_BIOS_INDEX
 }
 
+
 class Component(ComponentBase):
 
     def __get_attr_value(self, attr_path):
 
         retval = 'ERR'
-        if (not os.path.isfile(attr_path)):
+        if not os.path.isfile(attr_path):
             return retval
 
         try:
             with open(attr_path, 'r') as fd:
                 retval = fd.read()
         except Exception as error:
-            logging.error("Unable to open ", attr_path, " file !")
+            logging.error("Unable to open file: %s", attr_path)
 
         retval = retval.rstrip(' \t\n\r')
         return retval
@@ -71,17 +72,15 @@ class Component(ComponentBase):
             with open(attr_path, 'r+') as reg_file:
                 reg_file.write(value)
         except IOError as e:
-            logging.error("Error: unable to open file: %s" % str(e))
+            logging.error("Error: unable to open file: %s", str(e))
             return False
 
-        return True 
+        return True
 
     def __get_current_bios(self):
-        current_bios=self.__get_attr_value(BIOS_CS_PATH)
+        current_bios = self.__get_attr_value(BIOS_CS_PATH)
         if current_bios != 'ERR':
-            '''
-            Get first char to convert to bios ID
-            '''
+            # Get first char to convert to bios ID
             current_bios = int(current_bios[:1])
         else:
             current_bios = None
@@ -98,30 +97,30 @@ class Component(ComponentBase):
         cpld_version = None
         ret_str = None
         path = None
-        target="The CPLD version is "
+        target = "The CPLD version is "
 
         if self.index == CPLD_INDEX:
             path = CPLD_INFO_PATH
         else:
             logging.error("Unable support index %d", self.index)
 
-        if path !=None:
+        if path is not None:
             try:
                 with open(path, 'r') as file:
                     ret_str = file.read()
             except Exception as error:
                 logging.error("Unable to open file %s", path)
-            
-            if ret_str!=None:
-                start_idx=ret_str.find(target)
+
+            if ret_str is not None:
+                start_idx = ret_str.find(target)
                 if start_idx > 0:
                     start_idx = start_idx+len(target)
                     offset = ret_str[start_idx:].find('\n')
                     if offset > 0:
-                        end_idx=start_idx+offset
-                        cpld_version=ret_str[start_idx:end_idx].strip('\n')
+                        end_idx = start_idx+offset
+                        cpld_version = ret_str[start_idx:end_idx].strip('\n')
 
-                if cpld_version == None:
+                if cpld_version is None:
                     logging.error("Unable to parse cpld info %d", self.index)
 
         return cpld_version
@@ -132,9 +131,9 @@ class Component(ComponentBase):
 
     def __get_bios_version(self):
         bios_version = None
-        current_bios_id=self.__get_current_bios()
+        current_bios_id = self.__get_current_bios()
 
-        if current_bios_id != None :
+        if current_bios_id is not None:
             if self.index == BIOS_ID_MAPPING_TABLE[current_bios_id]:
                 try:
                     with open(BIOS_VER_PATH, 'r') as file:
@@ -142,85 +141,82 @@ class Component(ComponentBase):
                 except Exception as error:
                     logging.error("Unable to open file %s", BIOS_VER_PATH)
             else:
-                logging.error("Only support bios version of current running BIOS")
+                logging.error(
+                    "Only support bios version of current running BIOS")
                 bios_version = "N/A"
 
         return bios_version
 
-    def __install_cpld_firmware(self,image_path):
-        result=False
+    def __install_cpld_firmware(self, image_path):
+        result = False
         cmd = FW_INSTALL_CMD_LIST[self.index].format(image_path)
 
         ret = os.system(cmd)
         if ret == OS_SYSTEM_SUCCESS:
-            result=True
+            result = True
 
         return result
 
-    def __install_bmc_firmware(self,image_path):
-        result=False
+    def __install_bmc_firmware(self, image_path):
+        result = False
         cmd = FW_INSTALL_CMD_LIST[self.index].format(image_path)
 
         ret = os.system(cmd)
         if ret == OS_SYSTEM_SUCCESS:
-            result=True
+            result = True
         return result
 
-    def __install_bios_firmware(self,image_path):
-        result=False
+    def __install_bios_firmware(self, image_path):
+        result = False
         temp_bios_id = None
-        current_bios_id=self.__get_current_bios()
+        current_bios_id = self.__get_current_bios()
 
-        if(current_bios_id==0):
+        if current_bios_id == 0:
             temp_bios_id = 1
-        elif(current_bios_id==1):
+        elif current_bios_id == 1:
             temp_bios_id = 0
         else:
-            '''
-            If current BIOS ID illegal, treat as None
-            '''
+            #If current BIOS ID illegal, treat as None
             logging.error("Cannot get correct bios id")
             current_bios_id = None
 
-        if (current_bios_id != None) and (temp_bios_id != None):
+        if (current_bios_id is not None) and (temp_bios_id is not None):
             ret = True
             if self.index == BIOS_ID_MAPPING_TABLE[current_bios_id]:
                 pass
             elif self.index == BIOS_ID_MAPPING_TABLE[temp_bios_id]:
                 ret = self.__set_attr_value(BIOS_CS_PATH, str(temp_bios_id))
             else:
-                logging.error("Not support BIOS index %d",self.index)
+                logging.error("Not support BIOS index %d", self.index)
 
-            if ret == True:
+            if ret:
                 cmd = FW_INSTALL_CMD_LIST[self.index].format(image_path)
                 ret = os.system(cmd)
                 if ret == OS_SYSTEM_SUCCESS:
-                    result=True
+                    result = True
                 else:
                     logging.error("Bios Firmware upgrade fail")
             else:
                 logging.error("Set BIOS ID fail")
 
             if self.index == BIOS_ID_MAPPING_TABLE[temp_bios_id]:
-                '''
-                Write back current_bios no matter what 
-                '''
+                # Write back current_bios no matter what
                 ret = self.__set_attr_value(BIOS_CS_PATH, str(current_bios_id))
 
         return result
 
     __get_version_callback_list = {
-        CPLD_INDEX:__get_cpld_version,
-        BMC_INDEX:__get_bmc_version,
-        MAIN_BIOS_INDEX:__get_bios_version,
-        BACKUP_BIOS_INDEX:__get_bios_version,
+        CPLD_INDEX: __get_cpld_version,
+        BMC_INDEX: __get_bmc_version,
+        MAIN_BIOS_INDEX: __get_bios_version,
+        BACKUP_BIOS_INDEX: __get_bios_version,
     }
 
     __install_firmware_callback_list = {
-        CPLD_INDEX:__install_cpld_firmware,
-        BMC_INDEX:__install_bmc_firmware,
-        MAIN_BIOS_INDEX:__install_bios_firmware,
-        BACKUP_BIOS_INDEX:__install_bios_firmware,
+        CPLD_INDEX: __install_cpld_firmware,
+        BMC_INDEX: __install_bmc_firmware,
+        MAIN_BIOS_INDEX: __install_bios_firmware,
+        BACKUP_BIOS_INDEX: __install_bios_firmware,
     }
 
     def __init__(self, component_index):

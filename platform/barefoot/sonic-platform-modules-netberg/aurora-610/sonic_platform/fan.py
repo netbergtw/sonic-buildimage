@@ -6,6 +6,7 @@
 #
 
 try:
+    import logging
     import math
     import os
     from sonic_platform_base.fan_base import FanBase
@@ -25,6 +26,7 @@ class FanConst:
 
 FAN_SYS_FS = "/sys/devices/virtual/hwmon/hwmon1/"
 logger = Logger('sonic-platform-fan')
+
 
 class Fan(FanBase):
 
@@ -60,7 +62,7 @@ class Fan(FanBase):
             with open(attr_path, 'r') as fd:
                 retval = fd.read()
         except Exception as error:
-            logging.error("Unable to open ", attr_path, " file !")
+            logging.error("Unable to open file: %s", attr_path)
 
         retval = retval.rstrip(' \t\n\r')
         return retval
@@ -69,7 +71,6 @@ class Fan(FanBase):
 ##############################################
 # Device methods
 ##############################################
-
 
     def get_name(self):
         """
@@ -103,9 +104,9 @@ class Fan(FanBase):
         else:
             attr_path = self.__fan_gpi_attr
             attr_rv = self.__get_attr_value(attr_path)
-            if (attr_rv != 'ERR'):
+            if attr_rv != 'ERR':
                 # B[0-3] installed(0)/uninstalled(1)
-                if (not((int(attr_rv, 16) >> self.__index) & 1)):
+                if not(int(attr_rv, 16) >> self.__index) & 1:
                     presence = True
             else:
                 raise SyntaxError
@@ -208,7 +209,7 @@ class Fan(FanBase):
                 speed += math.ceil(float(fan2_input * 100 /
                                          MAX_SPEED_OF_FAN_BACK))
                 speed /= 2
-            elif (attr_rv1 != 'ERR'):
+            elif attr_rv1 != 'ERR':
                 fan1_input = int(attr_rv1)
                 if self.__index >= self.__start_of_psu_fans:
                     speed = math.ceil(
@@ -216,7 +217,7 @@ class Fan(FanBase):
                 else:
                     speed = math.ceil(
                         float(fan1_input * 100 / MAX_SPEED_OF_FAN_FRONT))
-            elif (attr_rv2 != 'ERR'):
+            elif attr_rv2 != 'ERR':
                 fan2_input = int(attr_rv2)
                 speed += math.ceil(float(fan2_input * 100 /
                                          MAX_SPEED_OF_FAN_BACK))

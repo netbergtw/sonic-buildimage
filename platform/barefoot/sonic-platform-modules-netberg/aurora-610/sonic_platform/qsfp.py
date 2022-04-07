@@ -7,8 +7,6 @@
 
 try:
     import os
-    import sys
-    import time
     import logging
     from ctypes import create_string_buffer
     from sonic_platform_base.sfp_base import SfpBase
@@ -705,13 +703,13 @@ class QSfp(SfpBase):
         if dom_control_raw is not None:
             dom_control_data = sfpd_obj.parse_control_bytes(dom_control_raw, 0)
             tx_disable_list.append(
-                'On' == dom_control_data['data']['TX1Disable']['value'])
+                dom_control_data['data']['TX1Disable']['value'] == 'On')
             tx_disable_list.append(
-                'On' == dom_control_data['data']['TX2Disable']['value'])
+                dom_control_data['data']['TX2Disable']['value'] == 'On')
             tx_disable_list.append(
-                'On' == dom_control_data['data']['TX3Disable']['value'])
+                dom_control_data['data']['TX3Disable']['value'] == 'On')
             tx_disable_list.append(
-                'On' == dom_control_data['data']['TX4Disable']['value'])
+                dom_control_data['data']['TX4Disable']['value'] == 'On')
             tx_disable = tx_disable_list[0] or tx_disable_list[1] or tx_disable_list[2] or tx_disable_list[3]
 
         return tx_disable

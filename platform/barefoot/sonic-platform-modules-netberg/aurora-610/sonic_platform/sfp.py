@@ -8,7 +8,7 @@
 
 try:
     import os
-    import sys
+    import logging
     from ctypes import create_string_buffer
     from sonic_platform_base.sfp_base import SfpBase
     from sonic_platform_base.sonic_sfp.sff8472 import sff8472Dom
@@ -95,7 +95,7 @@ class Sfp(SfpBase):
             with open(attr_path, 'r') as fd:
                 retval = fd.read()
         except Exception as error:
-            logging.error("Unable to open ", attr_path, " file !")
+            logging.error("Unable to open file %s", attr_path)
 
         retval = retval.rstrip(' \t\n\r')
         return retval

@@ -12,6 +12,7 @@ try:
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
+
 class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
 
     EEPROM_DECODE_HEADLINES = 6
@@ -59,7 +60,7 @@ class Eeprom(eeprom_tlvinfo.TlvInfoDecoder):
         decode_output = sys.stdout.getvalue()
         sys.stdout = original_stdout
 
-        (is_valid, valid_crc) = self.is_checksum_valid(data)
+        is_valid = self.is_checksum_valid(data)
         if not is_valid:
             return {}
 

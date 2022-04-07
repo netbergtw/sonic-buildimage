@@ -2,7 +2,7 @@
 #
 # Name: thermal.py, version: 1.0
 #
-# Description: Module contains the definitions of SONiC platform APIs 
+# Description: Module contains the definitions of SONiC platform APIs
 #
 
 try:
@@ -12,71 +12,68 @@ except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
 
-
 class Thermal(ThermalBase):
 
-    __core_temp_path = "/usr/share/sonic/platform/coretemp/temp{}_input"
-    __switch_thermal_path = "/usr/share/sonic/platform/psoc/temp{}_input"
-    __max_temp_path = "/usr/share/sonic/platform/coretemp/temp{}_max"
+    __core_temp_path = "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp{}_input"
+    __switch_thermal_path = "/sys/devices/virtual/hwmon/hwmon2/temp{}_input"
+    __max_temp_path = "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp{}_max"
     __name_of_thermal = [
-            "Core 0 Temperature",
-            "Core 1 Temperature",
-            "Core 2 Temperature",
-            "Core 3 Temperature",
-            "Core 4 Temperature",
-            "FrontSide Temperature",
-            "FanBoard Temperature",
-            "ASIC Temperature",
-            "Center Temperature",
-            "CPU Board Temperature",
-            "Switch die temperature",
-            "PSU1 Temperature1",
-            "PSU2 Temperature1",
-            "PSU1 Temperature2",
-            "PSU2 Temperature2"
-        ]
+        "Core 0 Temperature",
+        "Core 1 Temperature",
+        "Core 2 Temperature",
+        "Core 3 Temperature",
+        "Core 4 Temperature",
+        "FrontSide Temperature",
+        "FanBoard Temperature",
+        "ASIC Temperature",
+        "Center Temperature",
+        "CPU Board Temperature",
+        "Switch die temperature",
+        "PSU1 Temperature1",
+        "PSU2 Temperature1",
+        "PSU1 Temperature2",
+        "PSU2 Temperature2"
+    ]
     __thermal_path_list = [
-            __core_temp_path.format(1),
-            __core_temp_path.format(2),
-            __core_temp_path.format(3),
-            __core_temp_path.format(4),
-            __core_temp_path.format(5),
-            __switch_thermal_path.format(1),
-            __switch_thermal_path.format(2),
-            __switch_thermal_path.format(3),
-            __switch_thermal_path.format(4),
-            __switch_thermal_path.format(5),
-            __switch_thermal_path.format(6),
-            __switch_thermal_path.format(7),
-            __switch_thermal_path.format(8),
-            __switch_thermal_path.format(9),
-            __switch_thermal_path.format(10)
-        ]
+        __core_temp_path.format(1),
+        __core_temp_path.format(2),
+        __core_temp_path.format(3),
+        __core_temp_path.format(4),
+        __core_temp_path.format(5),
+        __switch_thermal_path.format(1),
+        __switch_thermal_path.format(2),
+        __switch_thermal_path.format(3),
+        __switch_thermal_path.format(4),
+        __switch_thermal_path.format(5),
+        __switch_thermal_path.format(6),
+        __switch_thermal_path.format(7),
+        __switch_thermal_path.format(8),
+        __switch_thermal_path.format(9),
+        __switch_thermal_path.format(10)
+    ]
     __max_temp_path_list = [
-            __max_temp_path.format(1),
-            __max_temp_path.format(2),
-            __max_temp_path.format(3),
-            __max_temp_path.format(4),
-            __max_temp_path.format(5),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
-        ]
-
+        __max_temp_path.format(1),
+        __max_temp_path.format(2),
+        __max_temp_path.format(3),
+        __max_temp_path.format(4),
+        __max_temp_path.format(5),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ]
 
     def __init__(self, index):
         self.__index = index
 
         self.__thermal_temp_attr = self.__thermal_path_list[self.__index]
         self.__max_temp_attr = self.__max_temp_path_list[self.__index]
-
 
     def __get_attr_value(self, attr_path):
 
@@ -97,6 +94,7 @@ class Thermal(ThermalBase):
 ##############################################
 # Device methods
 ##############################################
+
 
     def get_name(self):
         """
