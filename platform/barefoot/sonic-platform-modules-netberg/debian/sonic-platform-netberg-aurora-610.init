@@ -164,11 +164,10 @@ start)
             modprobe swps
             ;;
         esac
-        echo net_eeprom 0x53 > /sys/bus/i2c/devices/i2c-0/new_device
-        modprobe net_eeprom
-
+	modprobe at24
+        echo 24c64 0x53 > /sys/bus/i2c/devices/i2c-0/new_device
     else
-        echo " AS: Platform init fail" >> /dev/kmsg
+        echo " AS: nba610 init fail" >> /dev/kmsg
     fi
 
     # Setting ARP garbage collection threshold values
@@ -183,7 +182,7 @@ start)
 stop)
     exit 0
     # remove modules by order
-    rmmod net_eeprom
+    rmmod at24
     rmmod swps
     # rmmod optoe
     rmmod net_cpld
