@@ -2,9 +2,10 @@
 
 try:
     import os
+    import re
     import logging
+    from subprocess import Popen, PIPE
     from sonic_platform_base.component_base import ComponentBase
-    from sonic_platform.ipmi import Ipmi
 
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
@@ -30,10 +31,10 @@ COMPONENT_NAME_LIST = [
 ]
 
 COMPONENT_DESC_LIST = [
-    "platform management and control LED",
+    "Platform management and LED",
     "Baseboard management controller",
-    "Main Basic Input/Output System",
-    "Backup Basic Input/Output System",
+    "Main BIOS",
+    "Backup BIOS",
 ]
 
 
@@ -126,8 +127,17 @@ class Component(ComponentBase):
         return cpld_version
 
     def __get_bmc_version(self):
-        ipmi = Ipmi()
-        return ipmi.get_bmc_version()
+        bmc_version = "N/A"
+
+        output = Popen(["ipmitool", "mc", "info"], stdout=PIPE, encoding='utf8')
+        ret_str = output.communicate(timeout=5)[0]
+
+        ret_search = re.search("Firmware Revision\s+:\s(.*)\n", ret_str, re.M)
+
+        if ret_search:
+            bmc_version = ret_search.group(1)
+
+        return bmc_version
 
     def __get_bios_version(self):
         bios_version = None
