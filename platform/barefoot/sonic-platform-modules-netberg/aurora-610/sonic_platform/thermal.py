@@ -15,7 +15,7 @@ except ImportError as e:
 class Thermal(ThermalBase):
 
     __core_temp_path = "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp{}_input"
-    __switch_thermal_path = "/sys/devices/virtual/hwmon/hwmon2/temp{}_input"
+    __switch_thermal_path = "/sys/devices/virtual/hwmon/hwmon1/temp{}_input"
     __max_temp_path = "/sys/devices/platform/coretemp.0/hwmon/hwmon1/temp{}_max"
     __name_of_thermal = [
         "Core 0 Temperature",

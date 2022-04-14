@@ -15,7 +15,7 @@ except ImportError as e:
 VOLTAGE_UPPER_LIMIT = 14
 VOLTAGE_LOWER_LIMIT = 10
 
-PSU_SYS_FS = "/sys/devices/virtual/hwmon/hwmon2/device/"
+PSU_SYS_FS = "/sys/devices/virtual/hwmon/hwmon1/device/"
 logger = Logger('sonic-platform-psu')
 
 
