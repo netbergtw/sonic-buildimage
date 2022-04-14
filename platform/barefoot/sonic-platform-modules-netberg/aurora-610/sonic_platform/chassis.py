@@ -94,7 +94,7 @@ class Chassis(ChassisBase):
         Returns:
             string: The name of the chassis
         """
-        return self._eeprom.modelstr(self._eeprom_data)
+        return self._eeprom.modelstr()
 
     def get_presence(self):
         """
