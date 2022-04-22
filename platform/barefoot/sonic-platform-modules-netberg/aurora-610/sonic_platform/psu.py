@@ -61,6 +61,7 @@ class Psu(PsuBase):
         except OSError as ex:
             logger.log_error("Cannot open - {}: {}".format(filepath, repr(ex)))
 
+        return retval
 ##############################################
 # Device methods
 ##############################################
@@ -88,7 +89,7 @@ class Psu(PsuBase):
 
         attr_rv = self.__get_attr_value(attr_path)
         if attr_rv != 'ERR':
-            if attr_rv == attr_normal or attr_rv == attr_unpowered:
+            if attr_rv in (attr_normal, attr_unpowered):
                 presence = True
         else:
             raise SyntaxError
@@ -160,7 +161,6 @@ class Psu(PsuBase):
             A float number, the output voltage in volts,
             e.g. 12.1
         """
-        voltage_out = 0.0
         attr_path = self.__psu_voltage_out_attr
 
         attr_rv = self.__get_attr_value(attr_path)
@@ -178,7 +178,6 @@ class Psu(PsuBase):
         Returns:
             A float number, the electric current in amperes, e.g 15.4
         """
-        current_out = 0.0
         attr_path = self.__psu_current_out_attr
 
         attr_rv = self.__get_attr_value(attr_path)
@@ -196,7 +195,6 @@ class Psu(PsuBase):
         Returns:
             A float number, the power in watts, e.g. 302.6
         """
-        power_out = 0.0
         attr_path = self.__psu_power_out_attr
 
         attr_rv = self.__get_attr_value(attr_path)
@@ -219,7 +217,7 @@ class Psu(PsuBase):
         voltage_out = self.get_voltage()
 
         # Check the voltage out with 12V, plus or minus 20 percentage.
-        if (VOLTAGE_LOWER_LIMIT <= voltage_out and voltage_out <= VOLTAGE_UPPER_LIMIT):
+        if VOLTAGE_LOWER_LIMIT <= voltage_out <= VOLTAGE_UPPER_LIMIT:
             powergood_status = True
 
         return powergood_status

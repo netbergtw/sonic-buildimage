@@ -211,7 +211,7 @@ class Component(ComponentBase):
 
             if self.index == BIOS_ID_MAPPING_TABLE[temp_bios_id]:
                 # Write back current_bios no matter what
-                ret = self.__set_attr_value(BIOS_CS_PATH, str(current_bios_id))
+                self.__set_attr_value(BIOS_CS_PATH, str(current_bios_id))
 
         return result
 

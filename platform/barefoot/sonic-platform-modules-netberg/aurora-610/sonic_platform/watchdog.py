@@ -77,8 +77,10 @@ class Watchdog(WatchdogBase):
         watchdog_device_path = "/dev/{}".format(wdt_main_dev_name)
         try:
             watchdog = os.open(watchdog_device_path, os.O_RDWR)
-        except:
+        except (FileNotFoundError, IOError, OSError):
             watchdog = None
+        except SystemExit:
+            pass
 
         return watchdog, wdt_main_dev_name
 

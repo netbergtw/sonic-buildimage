@@ -62,8 +62,8 @@ class Sfp(SfpBase):
     __hwsku = "aurora-610"
 
     __port_to_i2c_mapping = {
-        0: 10,  1: 11,  2: 12,  3: 13,  4: 14,  5: 15,  6: 16,  7: 17,
-        8: 18,  9: 19, 10: 20, 11: 21, 12: 22, 13: 23, 14: 24, 15: 25,
+        0: 10, 1: 11, 2: 12, 3: 13, 4: 14, 5: 15, 6: 16, 7: 17,
+        8: 18, 9: 19, 10: 20, 11: 21, 12: 22, 13: 23, 14: 24, 15: 25,
         16: 26, 17: 27, 18: 28, 19: 29, 20: 30, 21: 31, 22: 32, 23: 33,
         24: 34, 25: 35, 26: 36, 27: 37, 28: 38, 29: 39, 30: 40, 31: 41,
         32: 42, 33: 43, 34: 44, 35: 45, 36: 46, 37: 47, 38: 48, 39: 49,
@@ -88,14 +88,17 @@ class Sfp(SfpBase):
     def __get_attr_value(self, attr_path):
 
         retval = 'ERR'
-        if (not os.path.isfile(attr_path)):
+        if not os.path.isfile(attr_path):
             return retval
 
         try:
             with open(attr_path, 'r') as fd:
                 retval = fd.read()
-        except Exception as error:
-            logging.error("Unable to open file %s", attr_path)
+
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", attr_path)
+        except OSError as ex:
+            logging.error("Cannot open - %s: %s", attr_path, repr(ex))
 
         retval = retval.rstrip(' \t\n\r')
         return retval
@@ -106,7 +109,7 @@ class Sfp(SfpBase):
             with open(attr_path, 'r+') as reg_file:
                 reg_file.write(value)
         except IOError as e:
-            logging.error("Error: unable to open file: '%s'" % str(e))
+            logging.error("Error: unable to open file: '%s'", str(e))
             return False
 
         return True
@@ -119,14 +122,13 @@ class Sfp(SfpBase):
         docker_hwsku_path = '/usr/share/sonic/hwsku'
 
         host_platform_path = "/".join([host_platform_root_path,
-                                      self.__platform])
+                                       self.__platform])
         hwsku_path = "/".join([host_platform_path, self.__hwsku]
                               ) if self.__is_host() else docker_hwsku_path
 
         return "/".join([hwsku_path, "port_config.ini"])
 
     def __read_eeprom_specific_bytes(self, offset, num_bytes):
-        sysfsfile_eeprom = None
         eeprom_raw = []
 
         for i in range(0, num_bytes):
@@ -140,21 +142,24 @@ class Sfp(SfpBase):
                 raw_len = len(raw)
                 for n in range(0, raw_len):
                     eeprom_raw[n] = hex(ord(raw[n]))[2:].zfill(2)
-        except:
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", sysfs_eeprom_path)
+            return None
+        except OSError as ex:
+            logging.error("Cannot open - %s: %s", sysfs_eeprom_path, repr(ex))
             return None
 
         return eeprom_raw
 
     def __write_eeprom_specific_bytes(self, offset, buffer):
         sysfs_eeprom_path = self.__eeprom_path
-        sysfsfile_eeprom = None
 
         try:
             with open(sysfs_eeprom_path, "r+b") as sysfsfile_eeprom:
                 sysfsfile_eeprom.seek(offset)
                 sysfsfile_eeprom.write(buffer[0])
         except IOError as e:
-            logging.error("Error: unable to open file: '%s'" % str(e))
+            logging.error("Error: unable to open file: '%s'", str(e))
             return False
 
         return True
@@ -212,8 +217,8 @@ class Sfp(SfpBase):
         attr_path = self.__presence_attr
 
         attr_rv = self.__get_attr_value(attr_path)
-        if (attr_rv != 'ERR'):
-            if (int(attr_rv) == 0):
+        if attr_rv != 'ERR':
+            if int(attr_rv) == 0:
                 presence = True
         else:
             raise SyntaxError
@@ -305,23 +310,23 @@ class Sfp(SfpBase):
         vendor_oui                 |1*255VCHAR     |vendor OUI
         ========================================================================
         """
-        transceiver_info_dict_keys = ['type',                      'vendor_rev',
-                                      'serial',                    'manufacturer',
-                                      'model',                     'connector',
-                                      'encoding',                  'ext_identifier',
+        transceiver_info_dict_keys = ['type', 'vendor_rev',
+                                      'serial', 'manufacturer',
+                                      'model', 'connector',
+                                      'encoding', 'ext_identifier',
                                       'ext_rateselect_compliance', 'cable_type',
-                                      'cable_length',              'nominal_bit_rate',
-                                      'specification_compliance',  'vendor_date',
+                                      'cable_length', 'nominal_bit_rate',
+                                      'specification_compliance', 'vendor_date',
                                       'vendor_oui']
 
-        sfp_cable_length_tup = ('LengthSMFkm-UnitsOfKm',  'LengthSMF(UnitsOf100m)',
+        sfp_cable_length_tup = ('LengthSMFkm-UnitsOfKm', 'LengthSMF(UnitsOf100m)',
                                 'Length50um(UnitsOf10m)', 'Length62.5um(UnitsOfm)',
-                                'LengthCable(UnitsOfm)',  'LengthOM3(UnitsOf10m)')
+                                'LengthCable(UnitsOfm)', 'LengthOM3(UnitsOf10m)')
 
-        sfp_compliance_code_tup = ('10GEthernetComplianceCode',    'InfinibandComplianceCode',
-                                   'ESCONComplianceCodes',         'SONETComplianceCodes',
-                                   'EthernetComplianceCodes',      'FibreChannelLinkLength',
-                                   'FibreChannelTechnology',        'SFP+CableTechnology',
+        sfp_compliance_code_tup = ('10GEthernetComplianceCode', 'InfinibandComplianceCode',
+                                   'ESCONComplianceCodes', 'SONETComplianceCodes',
+                                   'EthernetComplianceCodes', 'FibreChannelLinkLength',
+                                   'FibreChannelTechnology', 'SFP+CableTechnology',
                                    'FibreChannelTransmissionMedia', 'FibreChannelSpeed')
 
         sfpi_obj = sff8472InterfaceId()
@@ -429,16 +434,16 @@ class Sfp(SfpBase):
                                    |               |for example, tx2power stands for tx power of channel 2.
         ========================================================================
         """
-        transceiver_dom_info_dict_keys = ['rx_los',       'tx_fault',
+        transceiver_dom_info_dict_keys = ['rx_los', 'tx_fault',
                                           'reset_status', 'power_lpmode',
-                                          'tx_disable',   'tx_disable_channel',
-                                          'temperature',  'voltage',
-                                          'rx1power',     'rx2power',
-                                          'rx3power',     'rx4power',
-                                          'tx1bias',      'tx2bias',
-                                          'tx3bias',      'tx4bias',
-                                          'tx1power',     'tx2power',
-                                          'tx3power',     'tx4power']
+                                          'tx_disable', 'tx_disable_channel',
+                                          'temperature', 'voltage',
+                                          'rx1power', 'rx2power',
+                                          'rx3power', 'rx4power',
+                                          'tx1bias', 'tx2bias',
+                                          'tx3bias', 'tx4bias',
+                                          'tx1power', 'tx2power',
+                                          'tx3power', 'tx4power']
 
         sfpd_obj = sff8472Dom()
 
@@ -522,11 +527,11 @@ class Sfp(SfpBase):
         txbiaslowwarning           |FLOAT          |Low Warning Threshold value of tx Bias Current in mA.
         ========================================================================
         """
-        transceiver_dom_threshold_info_dict_keys = ['temphighalarm',    'temphighwarning',    'templowalarm',    'templowwarning',
-                                                    'vcchighalarm',     'vcchighwarning',     'vcclowalarm',     'vcclowwarning',
+        transceiver_dom_threshold_info_dict_keys = ['temphighalarm', 'temphighwarning', 'templowalarm', 'templowwarning',
+                                                    'vcchighalarm', 'vcchighwarning', 'vcclowalarm', 'vcclowwarning',
                                                     'rxpowerhighalarm', 'rxpowerhighwarning', 'rxpowerlowalarm', 'rxpowerlowwarning',
                                                     'txpowerhighalarm', 'txpowerhighwarning', 'txpowerlowalarm', 'txpowerlowwarning',
-                                                    'txbiashighalarm',  'txbiashighwarning',  'txbiaslowalarm',  'txbiaslowwarning']
+                                                    'txbiashighalarm', 'txbiashighwarning', 'txbiaslowalarm', 'txbiaslowwarning']
 
         sfpd_obj = sff8472Dom()
 
@@ -631,7 +636,6 @@ class Sfp(SfpBase):
             A Boolean, True if tx_disable is enabled, False if disabled
         """
         tx_disable = False
-        tx_fault = False
         status_control_raw = self.__read_eeprom_specific_bytes(
             SFP_STATUS_CONTROL_OFFSET, SFP_STATUS_CONTROL_WIDTH)
         if status_control_raw:
@@ -746,10 +750,7 @@ class Sfp(SfpBase):
         tx_bias_list = []
         tx_bias = "N/A"
         sfpd_obj = sff8472Dom()
-        eeprom_ifraw = self.__read_eeprom_specific_bytes(0, DOM_OFFSET)
-        sfpi_obj = sff8472InterfaceId(eeprom_ifraw)
         offset = DOM_OFFSET
-        offset_xcvr = INFO_OFFSET
 
         if not self.get_presence() or not sfpd_obj:
             return []
@@ -781,10 +782,7 @@ class Sfp(SfpBase):
         rx_power_list = []
         rx_power = "N/A"
         sfpd_obj = sff8472Dom()
-        eeprom_ifraw = self.__read_eeprom_specific_bytes(0, DOM_OFFSET)
-        sfpi_obj = sff8472InterfaceId(eeprom_ifraw)
         offset = DOM_OFFSET
-        offset_xcvr = INFO_OFFSET
 
         if not self.get_presence() or not sfpd_obj:
             return []
@@ -816,10 +814,7 @@ class Sfp(SfpBase):
         tx_power_list = []
         tx_power = "N/A"
         sfpd_obj = sff8472Dom()
-        eeprom_ifraw = self.__read_eeprom_specific_bytes(0, DOM_OFFSET)
-        sfpi_obj = sff8472InterfaceId(eeprom_ifraw)
         offset = DOM_OFFSET
-        offset_xcvr = INFO_OFFSET
 
         if not self.get_presence() or not sfpd_obj:
             return []
@@ -860,7 +855,6 @@ class Sfp(SfpBase):
         Returns:
             A boolean, True if tx_disable is set successfully, False if not
         """
-        sysfs_eeprom_path = self.__eeprom_path
         status_control_raw = self.__read_eeprom_specific_bytes(
             SFP_STATUS_CONTROL_OFFSET, SFP_STATUS_CONTROL_WIDTH)
         if status_control_raw is not None:
