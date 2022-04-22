@@ -102,14 +102,16 @@ class QSfp(SfpBase):
     def __get_attr_value(self, attr_path):
 
         retval = 'ERR'
-        if (not os.path.isfile(attr_path)):
+        if not os.path.isfile(attr_path):
             return retval
 
         try:
             with open(attr_path, 'r') as fd:
                 retval = fd.read()
-        except Exception as error:
-            logging.error("Unable to open ", attr_path, " file !")
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", attr_path)
+        except (OSError, IOError) as ex:
+            logging.error("Cannot open - %s: %s", attr_path, repr(ex))
 
         retval = retval.rstrip(' \t\n\r')
         return retval
@@ -119,8 +121,11 @@ class QSfp(SfpBase):
         try:
             with open(attr_path, 'r+') as reg_file:
                 reg_file.write(value)
-        except IOError as e:
-            logging.error("Error: unable to open file: '%s'" % str(e))
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", attr_path)
+            return False
+        except (OSError, IOError) as ex:
+            logging.error("Cannot open - %s: %s", attr_path, repr(ex))
             return False
 
         return True
@@ -133,14 +138,13 @@ class QSfp(SfpBase):
         docker_hwsku_path = '/usr/share/sonic/hwsku'
 
         host_platform_path = "/".join([host_platform_root_path,
-                                      self.__platform])
+                                       self.__platform])
         hwsku_path = "/".join([host_platform_path, self.__hwsku]
                               ) if self.__is_host() else docker_hwsku_path
 
         return "/".join([hwsku_path, "port_config.ini"])
 
     def __read_eeprom_specific_bytes(self, offset, num_bytes):
-        sysfsfile_eeprom = None
         eeprom_raw = []
 
         for i in range(0, num_bytes):
@@ -154,21 +158,27 @@ class QSfp(SfpBase):
                 raw_len = len(raw)
                 for n in range(0, raw_len):
                     eeprom_raw[n] = hex(ord(raw[n]))[2:].zfill(2)
-        except:
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", sysfs_eeprom_path)
+            return None
+        except (OSError, IOError) as ex:
+            logging.error("Cannot open - %s: %s", sysfs_eeprom_path, repr(ex))
             return None
 
         return eeprom_raw
 
     def __write_eeprom_specific_bytes(self, offset, buffer):
         sysfs_eeprom_path = self.__eeprom_path
-        sysfsfile_eeprom = None
 
         try:
             with open(sysfs_eeprom_path, "r+b") as sysfsfile_eeprom:
                 sysfsfile_eeprom.seek(offset)
                 sysfsfile_eeprom.write(buffer[0])
-        except IOError as e:
-            logging.error("Error: unable to open file: '%s'" % str(e))
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", sysfs_eeprom_path)
+            return False
+        except (OSError, IOError) as ex:
+            logging.error("Cannot open - %s: %s", sysfs_eeprom_path, repr(ex))
             return False
 
         return True

@@ -7,6 +7,7 @@
 
 try:
     import os
+    import logging
     from sonic_platform_base.thermal_base import ThermalBase
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
@@ -78,14 +79,16 @@ class Thermal(ThermalBase):
     def __get_attr_value(self, attr_path):
 
         retval = 'ERR'
-        if (not os.path.isfile(attr_path)):
+        if not os.path.isfile(attr_path):
             return retval
 
         try:
             with open(attr_path, 'r') as fd:
                 retval = fd.read()
-        except Exception as error:
-            logging.error("Unable to open ", attr_path, " file !")
+        except FileNotFoundError:
+            logging.error("File %s not found.  Aborting", attr_path)
+        except (OSError, IOError) as ex:
+            logging.error("Cannot open - %s: %s", attr_path, repr(ex))
 
         retval = retval.rstrip(' \t\n\r')
         return retval
@@ -156,13 +159,12 @@ class Thermal(ThermalBase):
 
         Returns:
             A float number of current temperature in Celsius up to nearest thousandth
-            of one degree Celsius, e.g. 30.125 
+            of one degree Celsius, e.g. 30.125
         """
-        temperature = 0.0
         attr_path = self.__thermal_temp_attr
 
         attr_rv = self.__get_attr_value(attr_path)
-        if (attr_rv != 'ERR'):
+        if attr_rv != 'ERR':
             temperature = float(attr_rv) / 1000
         else:
             raise SyntaxError
@@ -177,14 +179,13 @@ class Thermal(ThermalBase):
             A float number, the high threshold temperature of thermal in Celsius
             up to nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        high_threshold = 0.0
         attr_path = self.__max_temp_attr
 
         if attr_path == '':
             raise NotImplementedError
         else:
             attr_rv = self.__get_attr_value(attr_path)
-            if (attr_rv != 'ERR'):
+            if attr_rv != 'ERR':
                 high_threshold = float(attr_rv) / 1000
             else:
                 raise SyntaxError
@@ -205,8 +206,8 @@ class Thermal(ThermalBase):
         """
         Sets the high threshold temperature of thermal
 
-        Args : 
-            temperature: A float number up to nearest thousandth of one degree Celsius, 
+        Args :
+            temperature: A float number up to nearest thousandth of one degree Celsius,
             e.g. 30.125
 
         Returns:
@@ -218,7 +219,7 @@ class Thermal(ThermalBase):
         """
         Sets the low threshold temperature of thermal
 
-        Args : 
+        Args :
             temperature: A float number up to nearest thousandth of one degree Celsius,
             e.g. 30.125
 

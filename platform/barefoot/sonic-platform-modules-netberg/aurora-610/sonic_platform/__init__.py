@@ -1,2 +1,2 @@
-__all__ = ["platform", "chassis"]
-from sonic_platform import *
+__all__ = ['chassis', 'eeprom', 'platform', 'psu', 'sfp']
+from . import platform
