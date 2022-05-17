@@ -88,7 +88,7 @@ module sonic-device_metadata {
                 leaf type {
                     type string {
                         length 1..255;
-                        pattern "ToRRouter|LeafRouter|SpineChassisFrontendRouter|ChassisBackendRouter|ASIC|MgmtToRRouter|SpineRouter|BackEndToRRouter|BackEndLeafRouter|EPMS|MgmtTsToR|not-provisioned";
+                        pattern "ToRRouter|LeafRouter|SpineChassisFrontendRouter|ChassisBackendRouter|ASIC|MgmtToRRouter|SpineRouter|BackEndToRRouter|BackEndLeafRouter|EPMS|MgmtTsToR|BmcMgmtToRRouter|not-provisioned";
                     }
                 }
 
@@ -135,6 +135,11 @@ module sonic-device_metadata {
                     type string;
                 }
 
+                leaf cluster {
+                    type string;
+                    description "The switch is a member of this cluster.";
+                }
+
                 leaf subtype {
                     type string {
                         pattern "DualToR";
@@ -147,6 +152,11 @@ module sonic-device_metadata {
 
                 leaf storage_device {
                     type boolean;
+                }
+
+                leaf dhcp_server {
+                    type stypes:admin_mode;
+                    description "Indicate whether enable the embedded DHCP server.";
                 }
             }
             /* end of container localhost */
