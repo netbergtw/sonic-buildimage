@@ -86,7 +86,7 @@ installer_image_path="$image_path/$installer_image"
 
 boot_config="$target_path/boot-config"
 
-cmdline_allowlist="crashkernel hwaddr_ma1"
+cmdline_allowlist="crashkernel hwaddr_ma1 sonic_fips"
 
 # for backward compatibility with the sonic_upgrade= behavior
 install="${install:-${sonic_upgrade:-}}"
@@ -556,6 +556,22 @@ write_platform_specific_cmdline() {
     fi
     if [ "$sid" = "Clearwater2Ms" ]; then
         aboot_machine=arista_7800r3_48cqm2_lc
+        sonic_mode="$linecard_mode"
+    fi
+    if [ "$sid" = "WolverineQCpu" ]; then
+        aboot_machine=arista_7800r3a_36d2_lc
+        sonic_mode="$linecard_mode"
+    fi
+    if [ "$sid" = "WolverineQCpuBk" ]; then
+        aboot_machine=arista_7800r3ak_36d2_lc
+        sonic_mode="$linecard_mode"
+    fi
+    if [ "$sid" = "WolverineQCpuMs" ]; then
+        aboot_machine=arista_7800r3a_36dm2_lc
+        sonic_mode="$linecard_mode"
+    fi
+    if [ "$sid" = "WolverineQCpuBkMs" ]; then
+        aboot_machine=arista_7800r3ak_36dm2_lc
         sonic_mode="$linecard_mode"
     fi
     if [ "$sid" = "OtterLake" ]; then

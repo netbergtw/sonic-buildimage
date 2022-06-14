@@ -7,6 +7,9 @@ parameters:
   type: string
 - name: ptf_name
   type: string
+- name: vmtype
+  type: string
+  default: 'ceos'
 - name: section
   type: string
   default: ''
@@ -41,13 +44,15 @@ steps:
     git reset --hard origin/master
     sed -i s/use_own_value/${username}/ ansible/veos_vtb
     echo aaa > ansible/password.txt
-    docker exec sonic-mgmt bash -c "pushd /data/sonic-mgmt/ansible;./testbed-cli.sh -d /data/sonic-vm -m $(inventory) -t $(testbed_file) -k ceos refresh-dut ${{ parameters.tbname }} password.txt" && sleep 180
+    docker exec sonic-mgmt bash -c "pushd /data/sonic-mgmt/ansible;./testbed-cli.sh -d /data/sonic-vm -m $(inventory) -t $(testbed_file) -k ${{ parameters.vmtype }} refresh-dut ${{ parameters.tbname }} password.txt" && sleep 180
   displayName: "Setup testbed"
 
 - script: |
     rm -rf $(Build.ArtifactStagingDirectory)/*
     docker exec sonic-mgmt bash -c "/data/sonic-mgmt/tests/kvmtest.sh -en -T ${{ parameters.tbtype }} ${{ parameters.tbname }} ${{ parameters.dut }} ${{ parameters.section }}"
   displayName: "Run tests"
+  ${{ if eq(parameters.tbtype, 't0-sonic') }}:
+      continueOnError: true
 
 - script: |
     # save dut state if test fails

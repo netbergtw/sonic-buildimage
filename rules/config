@@ -29,7 +29,10 @@ DEFAULT_BUILD_LOG_TIMESTAMP = none
 # SONIC_USE_DOCKER_BUILDKIT = y
 
 # SONIC_CONFIG_USE_NATIVE_DOCKERD_FOR_BUILD - use native dockerd for build.
-# If set to y SONiC build container will use native dockerd instead of dind for faster build
+# If set to y SONiC build container will use native dockerd instead of dind for faster build.
+# Special handling of the docker image file names is needed to avoid conflicts with
+# other SONiC build jobs on the same server. This requires changes to the Dockerfile.j2 FROM statement
+# in the dockers/ and platform/ subdirs to use a variable reference instead of an explicit image name.
 # SONIC_CONFIG_USE_NATIVE_DOCKERD_FOR_BUILD = y
 
 # SONIC_CONFIG_ENABLE_COLORS - enable colored output in build system.
@@ -180,6 +183,13 @@ K8s_GCR_IO_PAUSE_VERSION = 3.4.1
 # The relative path is build root folder.
 SONIC_ENABLE_IMAGE_SIGNATURE ?= n
 
+# SONIC_ENABLE_SECUREBOOT_SIGNATURE - enable SONiC kernel signing to support UEFI secureboot
+# To support UEFI secureboot chain of trust requires EFI kernel to be signed as a PE binary
+#     SIGNING_KEY =
+#     SIGNING_CERT =
+# The absolute path should be provided.
+SONIC_ENABLE_SECUREBOOT_SIGNATURE ?= n
+
 # PACKAGE_URL_PREFIX - the package url prefix
 PACKAGE_URL_PREFIX ?= https://packages.trafficmanager.net/public/packages
 
@@ -214,3 +224,8 @@ ENABLE_ASAN ?= n
 
 # reset default container registry from dockerhub to other
 DEFAULT_CONTAINER_REGISTRY ?=
+
+# ENABLE_FIPS_FEATURE - support FIPS feature, only for amd64 or arm64, armhf not supported yet
+# ENABLE_FIPS - support FIPS flag, if enabled, no additional config requred for the image to support FIPS
+ENABLE_FIPS_FEATURE ?= y
+ENABLE_FIPS ?= n

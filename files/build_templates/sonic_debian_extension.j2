@@ -233,7 +233,10 @@ sudo cp -f $IMAGE_CONFIGS/bash/bash.bashrc $FILESYSTEM_ROOT/etc/
 sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install libcairo2-dev libdbus-1-dev libgirepository1.0-dev libsystemd-dev pkg-config
 
 # Mark runtime dependencies as manually installed to avoid them being auto-removed while uninstalling build dependencies
-sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-mark manual gir1.2-glib-2.0 libdbus-1-3 libgirepository-1.0-1 libsystemd0
+sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-mark manual gir1.2-glib-2.0 libdbus-1-3 libgirepository-1.0-1 libsystemd0 python3-dbus
+
+# Install systemd-python for SONiC host services
+sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install systemd-python
 
 # Install SONiC host services package
 SONIC_HOST_SERVICES_PY3_WHEEL_NAME=$(basename {{sonic_host_services_py3_wheel_path}})
@@ -309,6 +312,10 @@ sudo dpkg --root=$FILESYSTEM_ROOT -i {{deb}} || sudo LANG=C DEBIAN_FRONTEND=noni
 {% endfor %}
 {% endif %}
 
+# Install sonic-db-cli
+sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/sonic-db-cli_*.deb || \
+    sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
+
 # Install custom-built monit package and SONiC configuration files
 sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/monit_*.deb || \
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f
@@ -327,7 +334,7 @@ sudo chmod 755 $FILESYSTEM_ROOT/usr/bin/restart_service
 sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install smartmontools=7.2-1
 
 # Install custom-built openssh sshd
-sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/openssh-server_*.deb
+sudo dpkg --root=$FILESYSTEM_ROOT -i $debs_path/openssh-server_${OPENSSH_VERSION}_*.deb
 
 {% if sonic_asic_platform == 'broadcom' %}
 # Install custom-built flashrom
@@ -617,6 +624,11 @@ sudo dpkg --root=$FILESYSTEM_ROOT -P {{ debname }}
 {% endfor %}
 {% endif %}
 
+# Remove sshd host keys, and will regenerate on first sshd start. This needs to be
+# done again here because our custom version of sshd is being installed, which
+# will regenerate the sshd host keys.
+sudo rm -f $FILESYSTEM_ROOT/etc/ssh/ssh_host_*_key*
+
 sudo rm -f $FILESYSTEM_ROOT/usr/sbin/policy-rc.d
 
 # Copy fstrim service and timer file, enable fstrim timer
@@ -647,7 +659,7 @@ fi
 ## ensure proc is mounted
 sudo mount proc /proc -t proc || true
 if [[ $CONFIGURED_ARCH == armhf ]]; then
-    # A workaround to fix the armhf build hung issue, caused by sonic-platform-nokia-7215_1.0_armhf.deb post installation script 
+    # A workaround to fix the armhf build hung issue, caused by sonic-platform-nokia-7215_1.0_armhf.deb post installation script
     ps -eo pid,cmd | grep python | grep "/etc/entropy.py" | awk '{print $1}' | xargs sudo kill -9 2>/dev/null || true
 fi
 
@@ -766,6 +778,19 @@ if [ -f {{service}} ]; then
     echo "{{service}}" | sudo tee -a $GENERATED_SERVICE_FILE
 fi
 {% endfor %}
+{% for timer in installer_timers.split(' ') -%}
+if [ -f {{timer}} ]; then
+    sudo cp {{timer}} $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+
+    {% if "@" in timer %}
+    MULTI_INSTANCE="{{timer}}"
+    SINGLE_INSTANCE=${MULTI_INSTANCE/"@"}
+    sudo cp $SINGLE_INSTANCE $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+    {% endif %}
+
+    echo "{{timer}}" | sudo tee -a $GENERATED_SERVICE_FILE
+fi
+{% endfor %}
 if [ -f iccpd.service ]; then
     sudo LANG=C chroot $FILESYSTEM_ROOT systemctl disable iccpd.service
 fi
@@ -809,6 +834,9 @@ echo "telemetry.timer" | sudo tee -a $GENERATED_SERVICE_FILE
 sudo cp $BUILD_TEMPLATES/mgmt-framework.timer $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
 echo "mgmt-framework.timer" | sudo tee -a $GENERATED_SERVICE_FILE
 {% endif %}
+
+sudo cp $BUILD_TEMPLATES/pmon.timer $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
+echo "pmon.timer" | sudo tee -a $GENERATED_SERVICE_FILE
 
 sudo cp $BUILD_TEMPLATES/sonic.target $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
 sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable sonic.target
@@ -864,3 +892,6 @@ sudo cp $BUILD_SCRIPTS_DIR/mask_disabled_services.py $FILESYSTEM_ROOT/tmp/
 sudo chmod a+x $FILESYSTEM_ROOT/tmp/mask_disabled_services.py
 sudo LANG=C chroot $FILESYSTEM_ROOT /tmp/mask_disabled_services.py
 sudo rm -rf $FILESYSTEM_ROOT/tmp/mask_disabled_services.py
+
+
+sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install python3-dbus

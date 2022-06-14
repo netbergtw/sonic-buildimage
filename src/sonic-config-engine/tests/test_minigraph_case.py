@@ -14,6 +14,7 @@ BMC_MGMT_TOR_ROUTER = 'BmcMgmtToRRouter'
 class TestCfgGenCaseInsensitive(TestCase):
 
     def setUp(self):
+        self.yang = utils.YangWrapper()
         self.test_dir = os.path.dirname(os.path.realpath(__file__))
         self.script_file = utils.PYTHON_INTERPRETTER + ' ' + os.path.join(self.test_dir, '..', 'sonic-cfggen')
         self.sample_graph = os.path.join(self.test_dir, 'simple-sample-graph-case.xml')
@@ -24,6 +25,8 @@ class TestCfgGenCaseInsensitive(TestCase):
 
     def run_script(self, argument, check_stderr=False):
         print('\n    Running sonic-cfggen ' + argument)
+        self.assertTrue(self.yang.validate(argument))
+
         if check_stderr:
             output = subprocess.check_output(self.script_file + ' ' + argument, stderr=subprocess.STDOUT, shell=True)
         else:
@@ -223,6 +226,21 @@ class TestCfgGenCaseInsensitive(TestCase):
                 'lo_addr_v6': 'fe80::0002/128',
                 'mgmt_addr': '10.0.0.2/32',
                 'type': 'Server'
+            },
+            'server1-SC': {
+                'hwsku': 'smartcable-sku',
+                'lo_addr': '0.0.0.0/0',
+                'lo_addr_v6': '::/0',
+                'mgmt_addr': '0.0.0.0/0',
+                'type': 'SmartCable'
+            },
+            'server2-SC': {
+                'hwsku': 'smartcable-sku',
+                'lo_addr': '10.10.10.3/32',
+                'lo_addr_v6': '::/0',
+                'mgmt_addr': '0.0.0.0/0',
+                'type': 'SmartCable',
+                'subtype': 'active-active'
             }
         }
         output = self.run_script(argument)
@@ -351,6 +369,42 @@ class TestCfgGenCaseInsensitive(TestCase):
             expected_tunnel
         )
 
+        # Validate tunnel config is as before when tunnel_qos_remap = disabled
+        sample_graph_disabled_remap = os.path.join(self.test_dir, 'simple-sample-graph-case-remap-disabled.xml')
+        argument = '-m "' + sample_graph_disabled_remap + '" -p "' + self.port_config + '" -v "TUNNEL"'
+
+        output = self.run_script(argument)
+        self.assertEqual(
+            utils.to_dict(output.strip()),
+            expected_tunnel
+        )
+
+        # Validate extra config is generated when tunnel_qos_remap = enabled
+        sample_graph_enabled_remap = os.path.join(self.test_dir, 'simple-sample-graph-case-remap-enabled.xml')
+        argument = '-m "' + sample_graph_enabled_remap + '" -p "' + self.port_config + '" -v "TUNNEL"'
+        expected_tunnel = {
+            "MuxTunnel0": {
+                "tunnel_type": "IPINIP",
+                "src_ip": "25.1.1.10",
+                "dst_ip": "10.1.0.32",
+                "dscp_mode": "uniform",
+                "encap_ecn_mode": "standard",
+                "ecn_mode": "copy_from_outer",
+                "ttl_mode": "pipe",
+                "decap_dscp_to_tc_map": "AZURE_TUNNEL",
+                "decap_tc_to_pg_map": "AZURE_TUNNEL",
+                "encap_tc_to_dscp_map": "AZURE_TUNNEL",
+                "encap_tc_to_queue_map": "AZURE_TUNNEL"
+            }
+        }
+
+        output = self.run_script(argument)
+        self.assertEqual(
+            utils.to_dict(output.strip()),
+            expected_tunnel
+        )
+
+
     def test_minigraph_mux_cable_table(self):
         argument = '-m "' + self.sample_graph + '" -p "' + self.port_config + '" -v "MUX_CABLE"'
         expected_table = {
@@ -362,7 +416,9 @@ class TestCfgGenCaseInsensitive(TestCase):
             'Ethernet8': {
                 'state': 'auto',
                 'server_ipv4': '10.10.10.2/32',
-                'server_ipv6': 'fe80::2/128'
+                'server_ipv6': 'fe80::2/128',
+                'soc_ipv4': '10.10.10.3/32',
+                'cable_type': 'active-active'
             }
         }
 

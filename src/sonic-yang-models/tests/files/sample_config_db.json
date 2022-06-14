@@ -65,12 +65,12 @@
         },
         "BUFFER_PORT_INGRESS_PROFILE_LIST": {
             "Ethernet9": {
-                "profile_list": ["ingress_lossy_profile"]
+                "profile_list": "ingress_lossy_profile"
             }
         },
         "BUFFER_PORT_EGRESS_PROFILE_LIST": {
             "Ethernet9": {
-                "profile_list": ["egress_lossless_profile", "egress_lossy_profile"]
+                "profile_list": "egress_lossless_profile,egress_lossy_profile"
             }
         },
         "PORTCHANNEL": {
@@ -103,18 +103,32 @@
                 "tpid": "0x9200",
                 "mtu": "9100",
                 "lacp_key": "auto"
+            },
+            "PortChannel42": {
+                "admin_status": "up",
+                "members": [
+                    "Ethernet-BP0",
+                    "Ethernet-BP4"
+                ],
+                "min_links": "2",
+                "mtu": "9100",
+                "tpid": "0x8100"
             }
         },
         "PORTCHANNEL_INTERFACE": {
                 "PortChannel0003": {
                     "nat_zone": "1"
                 },
-                "PortChannel0004": {"vrf_name": "Vrf_blue"}
+                "PortChannel0004": {"vrf_name": "Vrf_blue"},
+                "PortChannel42|10.1.0.1/31": {},
+                "PortChannel42|2603:10e2:400:1::2/126": {}
         },
         "PORTCHANNEL_MEMBER": {
             "PortChannel0003|Ethernet1": {},
             "PortChannel0004|Ethernet2": {},
-            "PortChannel2|Ethernet12": {}
+            "PortChannel2|Ethernet12": {},
+            "PortChannel42|Ethernet-BP0": {},
+            "PortChannel42|Ethernet-BP4": {}
         },
         "VLAN_INTERFACE": {
             "Vlan111": {
@@ -288,6 +302,12 @@
                 "MIRROR_INGRESS_ACTION": "erspan",
                 "DSCP": "10",
                 "PRIORITY": "9999"
+            },
+            "DATAACL|RULE0": {
+                "PRIORITY": "999",
+                "PACKET_ACTION": "DROP",
+                "IP_TYPE": "IPv4ANY",
+                "SRC_IP": "1.1.1.1/32"
             }
         },
         "DEVICE_METADATA": {
@@ -305,7 +325,8 @@
                 "switch_type": "voq",
                 "max_cores": "8",
                 "sub_role": "FrontEnd",
-                "dhcp_server": "disabled"
+                "dhcp_server": "disabled",
+                "bgp_adv_lo_prefix_as_128": "true"
             }
         },
         "VLAN": {
@@ -394,10 +415,7 @@
         "NTP": {
             "global": {
                 "vrf": "mgmt",
-                "src_intf": [
-                    "eth0",
-                    "Loopback0"
-                ]
+                "src_intf": "eth0;Loopback0"
             }
         },
         "NTP_SERVER": {
@@ -426,7 +444,11 @@
                 "admin_status": "up",
                 "index": "0",
                 "asic_port_name": "Eth0-ASIC1",
-                "role": "Ext"
+                "role": "Ext",
+                "macsec": "test",
+                "link_training": "off",
+                "laser_freq": "191600",
+                "tx_power": "-26.6"
             },
             "Ethernet1": {
                 "alias": "Eth1/2",
@@ -434,7 +456,13 @@
                 "description": "",
                 "speed": "11100",
                 "tpid": "0x8100",
-                "admin_status": "up"
+                "admin_status": "up",
+                "autoneg": "on",
+                "adv_speeds": "100000,50000",
+                "adv_interface_types": "CR,CR4",
+                "link_training": "on",
+                "laser_freq": "191300",
+                "tx_power": "-27.3"
             },
             "Ethernet2": {
                 "alias": "Eth1/3",
@@ -442,7 +470,10 @@
                 "description": "",
                 "speed": "11100",
                 "tpid": "0x8100",
-                "admin_status": "up"
+                "admin_status": "up",
+                "autoneg": "on",
+                "adv_speeds": "all",
+                "adv_interface_types": "all"
             },
             "Ethernet3": {
                 "alias": "Eth1/4",
@@ -733,7 +764,33 @@
                 "speed": "11100",
                 "tpid": "0x8100",
                 "admin_status": "up"
-            }
+            },
+            "Ethernet-BP0": {
+                "admin_status": "up",
+                "alias": "Eth4-ASIC0",
+                "asic_port_name": "Eth4-ASIC0",
+                "description": "ASIC2:Eth0-ASIC2",
+                "index": "0",
+                "lanes": "17,18,19,20",
+                "mtu": "9100",
+                "pfc_asym": "off",
+                "role": "Int",
+                "speed": "40000",
+                "tpid": "0x8100"
+            },
+            "Ethernet-BP4": {
+                "admin_status": "up",
+                "alias": "Eth5-ASIC0",
+                "asic_port_name": "Eth5-ASIC0",
+                "description": "ASIC2:Eth1-ASIC2",
+                "index": "1",
+                "lanes": "21,22,23,24",
+                "mtu": "9100",
+                "pfc_asym": "off",
+                "role": "Int",
+                "speed": "40000",
+                "tpid": "0x8100"
+            } 
         },
         "ACL_TABLE": {
             "V4-ACL-TABLE": {
@@ -770,6 +827,14 @@
                     "Ethernet24"
                 ],
                 "stage": "ingress"
+            },
+            "DATAACL": {
+                "stage": "INGRESS",
+                "type": "CUSTOM_L3",
+                "ports": [
+                    "Ethernet0",
+                    "PortChannel0003"
+                ]
             }
 
         },
@@ -999,6 +1064,18 @@
                 "VERSION": "version_1_0_3"
             }
         },
+        "TELEMETRY": {
+            "certs": {
+                "ca_crt": "/etc/sonic/telemetry/dsmsroot.cer",
+		"server_crt": "/etc/sonic/telemetry/streamingtelemetryserver.cer",
+		"server_key": "/etc/sonic/telemetry/streamingtelemetryserver.key"
+            },
+	    "gnmi": {
+		"client_auth": "true",
+		"log_level": "2",
+		"port": "50051"
+	    }
+        },
         "FLEX_COUNTER_TABLE": {
             "PFCWD": {
                 "FLEX_COUNTER_STATUS": "enable"
@@ -1054,12 +1131,21 @@
                 "acl_counter_high_threshold": "85",
                 "acl_counter_low_threshold": "70",
                 "acl_counter_threshold_type": "percentage",
+                "dnat_entry_threshold_type": "percentage",
+                "dnat_entry_high_threshold": "85",
+                "dnat_entry_low_threshold": "70",
+                "ipmc_entry_threshold_type": "percentage",
+                "ipmc_entry_high_threshold": "85",
+                "ipmc_entry_low_threshold": "70",
                 "ipv6_neighbor_high_threshold": "67",
                 "ipv6_neighbor_low_threshold": "56",
                 "ipv6_neighbor_threshold_type": "percentage",
                 "nexthop_group_high_threshold": "67",
                 "nexthop_group_low_threshold": "56",
                 "nexthop_group_threshold_type": "percentage",
+                "snat_entry_threshold_type": "percentage",
+                "snat_entry_high_threshold": "85",
+                "snat_entry_low_threshold": "70",
                 "polling_interval": "0"
             }
         },
@@ -1470,7 +1556,7 @@
                 "pir": "2560000",
                 "type": "STRICT"
             }
-        },
+	},
 
         "WRED_PROFILE": {
             "Wred1": {
@@ -1686,9 +1772,109 @@
                 "vlan_id": "111",
                 "vsid": "5000"
             }
+        },
+
+        "BGP_VOQ_CHASSIS_NEIGHBOR": {
+            "10.0.0.1": {
+                "asn": "64850",
+                "holdtime": "180",
+                "keepalive": "60",
+                "local_addr": "10.0.0.2",
+                "name": "sonic-chassis-lc3",
+                "nhopself": "0",
+                "rrclient": "0",
+                "admin_status": "up"
+            },
+            "3333::3:6": {
+                "asn": "64850",
+                "holdtime": "180",
+                "keepalive": "60",
+                "local_addr": "3333::3:3",
+                "name": "sonic-chassis-lc3",
+                "nhopself": "0",
+                "rrclient": "0",
+                "admin_status": "up"
+            }
+        },
+
+        "PASSW_HARDENING": {
+            "POLICIES": {
+                "state": "enabled",
+                "expiration": "180",
+                "expiration_warning": "15",
+                "history_cnt": "10",
+                "len_min": "8",
+                "reject_user_passw_match": "true",
+                "digits_class": "true",
+                "lower_class": "true",
+                "special_class": "true",
+                "upper_class": "true"
+            }
+        },
+
+        "MACSEC_PROFILE": {
+            "test": {
+                "priority": "64",
+                "cipher_suite": "GCM-AES-128",
+                "primary_cak": "0123456789ABCDEF0123456789ABCDEF",
+                "primary_ckn": "6162636465666768696A6B6C6D6E6F70",
+                "fallback_cak": "00000000000000000000000000000000",
+                "fallback_ckn": "11111111111111111111111111111111",
+                "policy": "security",
+                "enable_replay_protect": "true",
+                "replay_window": "64",
+                "send_sci": "true",
+                "rekey_period": "3600"
+            }
+        },
+
+        "BGP_INTERNAL_NEIGHBOR": {
+            "10.1.0.0": {
+                "asn": "64850",
+                "holdtime": "180",
+                "keepalive": "60",
+                "local_addr": "10.1.0.1",
+                "name": "ASIC1",
+                "nhopself": "0",
+                "rrclient": "0",
+                "admin_status": "up"
+            },
+            "2603:10e2:400:1::1": {
+                "asn": "64850",
+                "holdtime": "180",
+                "keepalive": "60",
+                "local_addr": "2603:10e2:400:1::2",
+                "name": "ASIC0",
+                "nhopself": "0",
+                "rrclient": "0",
+                "admin_status": "up"
+            }
+        },
+
+        "KDUMP": {
+            "config": {
+                "enabled": "true",
+                "num_dumps": "3",
+                "memory": "0M-2G:256M,2G-4G:256M,4G-8G:384M,8G-:448M"
+             }
+         },
+         "ACL_TABLE_TYPE": {
+             "CUSTOM_L3": {
+                 "matches": [
+                     "IN_PORTS",
+                     "OUT_PORTS",
+                     "SRC_IP"
+                 ],
+                 "actions": [
+                     "PACKET_ACTION",
+                     "MIRROR_INGRESS_ACTION"
+                 ],
+                 "bind_points": [
+                     "PORT",
+                     "LAG"
+                 ]
+             }
         }
-
-
     },
     "SAMPLE_CONFIG_DB_UNKNOWN": {
         "UNKNOWN_TABLE": {

@@ -29,14 +29,15 @@
     },
 {%- set features = [("bgp", "enabled", false, "enabled"),
                    ("database", "always_enabled", false, "always_enabled"),
-                   ("lldp", "enabled", false, "enabled"),
+                   ("lldp", "enabled", true, "enabled"),
+                   ("pmon", "enabled", true, "enabled"),
                    ("pmon", "enabled", false, "enabled"),
                    ("radv", "enabled", false, "enabled"),
                    ("snmp", "enabled", true, "enabled"),
                    ("swss", "enabled", false, "enabled"),
                    ("syncd", "enabled", false, "enabled"),
                    ("teamd", "enabled", false, "enabled")] %}
-{% do features.append(("dhcp_relay", "{% if not (DEVICE_METADATA is defined and DEVICE_METADATA['localhost'] is defined and DEVICE_METADATA['localhost']['type'] is defined and DEVICE_METADATA['localhost']['type'] != 'ToRRouter') %}enabled{% else %}disabled{% endif %}", false, "enabled")) %}
+{% do features.append(("dhcp_relay", "{% if not (DEVICE_METADATA is defined and DEVICE_METADATA['localhost'] is defined and DEVICE_METADATA['localhost']['type'] is defined and DEVICE_METADATA['localhost']['type'] is not in ['ToRRouter', 'EPMS', 'MgmtTsToR', 'MgmtToRRouter']) %}enabled{% else %}disabled{% endif %}", false, "enabled")) %}
 {%- if sonic_asic_platform == "vs" %}{% do features.append(("gbsyncd", "enabled", false, "enabled")) %}{% endif %}
 {%- if include_iccpd == "y" %}{% do features.append(("iccpd", "disabled", false, "enabled")) %}{% endif %}
 {%- if include_mgmt_framework == "y" %}{% do features.append(("mgmt-framework", "enabled", true, "enabled")) %}{% endif %}
@@ -56,6 +57,12 @@
             "has_global_scope": {% if feature + '.service' in installer_services.split(' ') %}true{% else %}false{% endif %},
             "has_per_asic_scope": {% if feature + '@.service' in installer_services.split(' ') %}true{% else %}false{% endif %},
             "auto_restart": "{{autorestart}}",
+{# Set check_up_status to true here when app readiness will be marked in state db  #}
+{# For now, to support the infrastrucure, setting the check_up_status to false for bgp,swss,pmon  #}
+{# Once apps like bgp,synd supports app readiness, then bgp,syncd can set check_up_status to true #}
+{%- if feature in ["bgp", "swss", "pmon"] %}
+            "check_up_status" : "false",
+{%- endif %}
 {%- if include_kubernetes == "y" %}
 {%- if feature in ["lldp", "pmon", "radv", "snmp", "telemetry"] %}
             "set_owner": "kube", {% else %}
@@ -83,6 +90,20 @@
             "state" : "disabled", {% endif %}
             "rate_limit_interval" : "600"
         }{%if not loop.last %},{% endif -%}
-{% endfor %} 
+{% endfor %}
+    },
+    "PASSW_HARDENING": {
+        "POLICIES":{
+            "state": "disabled",
+            "expiration": "180",
+            "expiration_warning": "15",
+            "history_cnt": "10",
+            "len_min": "8",
+            "reject_user_passw_match": "true",
+            "lower_class": "true",
+            "upper_class": "true",
+            "digits_class": "true",
+            "special_class": "true"
+        }
     }
 }

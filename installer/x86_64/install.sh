@@ -666,6 +666,11 @@ else # install_env = "onie"
     fi
 fi
 
+# Add extra linux command line
+extra_cmdline_linux=%%EXTRA_CMDLINE_LINUX%%
+echo "EXTRA_CMDLINE_LINUX=$extra_cmdline_linux"
+GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX $extra_cmdline_linux"
+
 cat <<EOF >> $grub_cfg
 menuentry '$demo_grub_entry' {
         search --no-floppy --label --set=root $demo_volume_label
@@ -674,13 +679,13 @@ menuentry '$demo_grub_entry' {
         if [ x$grub_platform = xxen ]; then insmod xzio; insmod lzopio; fi
         insmod part_msdos
         insmod ext2
-        linux   /$image_dir/boot/vmlinuz-5.10.0-8-2-amd64 root=$grub_cfg_root rw $GRUB_CMDLINE_LINUX  \
+        linux   /$image_dir/boot/vmlinuz-5.10.0-12-2-amd64 root=$grub_cfg_root rw $GRUB_CMDLINE_LINUX  \
                 net.ifnames=0 biosdevname=0 \
                 loop=$image_dir/$FILESYSTEM_SQUASHFS loopfstype=squashfs                       \
                 systemd.unified_cgroup_hierarchy=0 \
                 apparmor=1 security=apparmor varlog_size=$VAR_LOG_SIZE usbcore.autosuspend=-1 $ONIE_PLATFORM_EXTRA_CMDLINE_LINUX
         echo    'Loading $demo_volume_label $demo_type initial ramdisk ...'
-        initrd  /$image_dir/boot/initrd.img-5.10.0-8-2-amd64
+        initrd  /$image_dir/boot/initrd.img-5.10.0-12-2-amd64
 }
 EOF
 

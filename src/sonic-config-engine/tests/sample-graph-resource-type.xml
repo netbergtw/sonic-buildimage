@@ -176,7 +176,7 @@
       <Hostname>switch-t0</Hostname>
       <PortChannelInterfaces>
         <PortChannel>
-          <Name>PortChannel01</Name>
+          <Name>PortChannel1</Name>
           <AttachTo>fortyGigE0/4</AttachTo>
           <SubInterface/>
         </PortChannel>
@@ -189,6 +189,14 @@
           <VlanID>1000</VlanID>
           <Tag>1000</Tag>
           <Subnets>192.168.0.0/27</Subnets>
+        </VlanInterface>
+        <VlanInterface>
+          <Name>ab4</Name>
+          <AttachTo>fortyGigE0/8</AttachTo>
+          <DhcpRelays>192.0.0.1;192.0.0.2</DhcpRelays>
+          <VlanID>1001</VlanID>
+          <Tag>1001</Tag>
+          <Subnets>192.168.0.32/27</Subnets>
         </VlanInterface>
         <VlanInterface>
           <Name>kk1</Name>
@@ -205,6 +213,7 @@
           <DhcpRelays>192.0.0.1;192.0.0.2</DhcpRelays>
           <VlanID>2000</VlanID>
           <Tag>2000</Tag>
+          <Type>Tagged</Type>
           <Subnets>192.168.0.240/27</Subnets>
         </VlanInterface>
         <VlanInterface>
@@ -219,12 +228,12 @@
       <IPInterfaces>
         <IPInterface>
           <Name i:nil="true"/>
-          <AttachTo>PortChannel01</AttachTo>
+          <AttachTo>PortChannel1</AttachTo>
           <Prefix>10.0.0.56/31</Prefix>
         </IPInterface>
         <IPInterface>
           <Name i:Name="true"/>
-          <AttachTo>PortChannel01</AttachTo>
+          <AttachTo>PortChannel1</AttachTo>
           <Prefix>FC00::71/126</Prefix>
         </IPInterface>
         <IPInterface>
@@ -256,7 +265,7 @@
       <DataAcls/>
       <AclInterfaces>
         <AclInterface>
-          <AttachTo>PortChannel01</AttachTo>
+          <AttachTo>PortChannel1</AttachTo>
           <InAcl>DataAcl</InAcl>
           <Type>DataPlane</Type>
         </AclInterface>
@@ -305,7 +314,7 @@
     <Devices>
       <Device i:type="ToRRouter">
         <Hostname>switch-t0</Hostname>
-        <HwSku>Force10-S6000</HwSku>
+        <HwSku>Arista-7050-QX-32S</HwSku>
         <ClusterName>AAA00PrdStr00</ClusterName>
       </Device>
       <Device i:type="LeafRouter">
@@ -742,7 +751,7 @@
       </EthernetInterfaces>
       <FlowControl>true</FlowControl>
       <Height>0</Height>
-      <HwSku>Force10-S6000</HwSku>
+      <HwSku>Arista-7050-QX-32S</HwSku>
       <ManagementInterfaces xmlns:a="http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution">
 	<a:ManagementInterface>
 	  <ElementType>DeviceInterface</ElementType>
@@ -777,5 +786,5 @@
     <Properties xmlns:a="http://schemas.datacontract.org/2004/07/Microsoft.Search.Autopilot.Evolution"/>
   </MetadataDeclaration>
   <Hostname>switch-t0</Hostname>
-  <HwSku>Force10-S6000</HwSku>
+  <HwSku>Arista-7050-QX-32S</HwSku>
 </DeviceMiniGraph>

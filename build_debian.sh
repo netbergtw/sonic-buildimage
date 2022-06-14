@@ -31,8 +31,9 @@ set -x -e
 CONFIGURED_ARCH=$([ -f .arch ] && cat .arch || echo amd64)
 
 ## docker engine version (with platform)
-DOCKER_VERSION=5:20.10.7~3-0~debian-$IMAGE_DISTRO
-LINUX_KERNEL_VERSION=5.10.0-8-2
+DOCKER_VERSION=5:20.10.14~3-0~debian-$IMAGE_DISTRO
+CONTAINERD_IO_VERSION=1.5.11-1
+LINUX_KERNEL_VERSION=5.10.0-12-2
 
 ## Working directory to prepare the file system
 FILESYSTEM_ROOT=./fsroot
@@ -113,6 +114,12 @@ sudo cp files/apt/apt.conf.d/{81norecommends,apt-{clean,gzip-indexes,no-language
 ## Note: set lang to prevent locale warnings in your chroot
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y update
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y upgrade
+
+echo '[INFO] Install and setup eatmydata'
+sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install eatmydata
+sudo LANG=C chroot $FILESYSTEM_ROOT ln -s /usr/bin/eatmydata /usr/local/bin/dpkg
+echo 'Dir::Bin::dpkg "/usr/local/bin/dpkg";' | sudo tee $FILESYSTEM_ROOT/etc/apt/apt.conf.d/00image-install-eatmydata > /dev/null
+
 echo '[INFO] Install packages for building image'
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install makedev psmisc
 
@@ -143,6 +150,23 @@ if [[ $CONFIGURED_ARCH == amd64 ]]; then
     sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install dmidecode hdparm
 fi
 
+## Sign the Linux kernel
+if [ "$SONIC_ENABLE_SECUREBOOT_SIGNATURE" = "y" ]; then
+    if [ ! -f $SIGNING_KEY ]; then
+       echo "Error: SONiC linux kernel signing key missing"
+       exit 1
+    fi
+    if [ ! -f $SIGNING_CERT ]; then
+       echo "Error: SONiC linux kernel signing certificate missing"
+       exit 1
+    fi
+
+    echo '[INFO] Signing SONiC linux kernel image'
+    K=$FILESYSTEM_ROOT/boot/vmlinuz-${LINUX_KERNEL_VERSION}-amd64
+    sbsign --key $SIGNING_KEY --cert $SIGNING_CERT --output /tmp/${K##*/} ${K}
+    sudo cp -f /tmp/${K##*/} ${K}
+fi
+
 ## Update initramfs for booting with squashfs+overlay
 cat files/initramfs-tools/modules | sudo tee -a $FILESYSTEM_ROOT/etc/initramfs-tools/modules > /dev/null
 
@@ -164,6 +188,10 @@ sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/arista-
 # Hook into initramfs: resize root partition after migration from another NOS to SONiC on Dell switches
 sudo cp files/initramfs-tools/resize-rootfs $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/resize-rootfs
 sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/resize-rootfs
+
+# Hook into initramfs: upgrade SSD from initramfs
+sudo cp files/initramfs-tools/ssd-upgrade $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/ssd-upgrade
+sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/ssd-upgrade
 
 # Hook into initramfs: run fsck to repair a non-clean filesystem prior to be mounted
 sudo cp files/initramfs-tools/fsck-rootfs $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/fsck-rootfs
@@ -210,17 +238,12 @@ if [[ $CONFIGURED_ARCH == armhf ]]; then
     # update ssl ca certificates for secure pem
     sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT c_rehash
 fi
-sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT curl -o /tmp/docker.gpg -fsSL https://download.docker.com/linux/debian/gpg
-sudo LANG=C chroot $FILESYSTEM_ROOT apt-key add /tmp/docker.gpg
-sudo LANG=C chroot $FILESYSTEM_ROOT rm /tmp/docker.gpg
+sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT curl -o /tmp/docker.asc -fsSL https://download.docker.com/linux/debian/gpg
+sudo LANG=C chroot $FILESYSTEM_ROOT mv /tmp/docker.asc /etc/apt/trusted.gpg.d/
 sudo LANG=C chroot $FILESYSTEM_ROOT add-apt-repository \
                                     "deb [arch=$CONFIGURED_ARCH] https://download.docker.com/linux/debian $IMAGE_DISTRO stable"
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get update
-if dpkg --compare-versions ${DOCKER_VERSION} ge "18.09"; then
-    sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install docker-ce=${DOCKER_VERSION} docker-ce-cli=${DOCKER_VERSION}
-else
-    sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install docker-ce=${DOCKER_VERSION}
-fi
+sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y install docker-ce=${DOCKER_VERSION} docker-ce-cli=${DOCKER_VERSION} containerd.io=${CONTAINERD_IO_VERSION}
 
 # Uninstall 'python3-gi' installed as part of 'software-properties-common' to remove debian version of 'PyGObject'
 # pip version of 'PyGObject' will be installed during installation of 'sonic-host-services'
@@ -248,8 +271,6 @@ fi
 sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/docker.service.d/
 ## Note: $_ means last argument of last command
 sudo cp files/docker/docker.service.conf $_
-## Fix systemd race between docker and containerd
-sudo sed -i '/After=/s/$/ containerd.service/' $FILESYSTEM_ROOT/lib/systemd/system/docker.service
 
 ## Create default user
 ## Note: user should be in the group with the same name, and also in sudo/docker/redis groups
@@ -384,7 +405,8 @@ sudo sed -i 's/LOAD_KEXEC=true/LOAD_KEXEC=false/' $FILESYSTEM_ROOT/etc/default/k
 ## Remove sshd host keys, and will regenerate on first sshd start
 sudo rm -f $FILESYSTEM_ROOT/etc/ssh/ssh_host_*_key*
 sudo cp files/sshd/host-ssh-keygen.sh $FILESYSTEM_ROOT/usr/local/bin/
-sudo cp -f files/sshd/sshd.service $FILESYSTEM_ROOT/lib/systemd/system/ssh.service
+sudo mkdir $FILESYSTEM_ROOT/etc/systemd/system/ssh.service.d
+sudo cp files/sshd/override.conf $FILESYSTEM_ROOT/etc/systemd/system/ssh.service.d/override.conf
 # Config sshd
 # 1. Set 'UseDNS' to 'no'
 # 2. Configure sshd to close all SSH connetions after 15 minutes of inactivity
@@ -568,6 +590,10 @@ scripts/collect_host_image_version_files.sh $TARGET_PATH $FILESYSTEM_ROOT
 
 # Remove GCC
 sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y remove gcc
+
+# Remove eatmydata
+sudo rm $FILESYSTEM_ROOT/etc/apt/apt.conf.d/00image-install-eatmydata $FILESYSTEM_ROOT/usr/local/bin/dpkg
+sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y remove eatmydata
 
 ## Clean up apt
 sudo LANG=C chroot $FILESYSTEM_ROOT apt-get -y autoremove

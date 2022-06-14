@@ -46,7 +46,7 @@
 [submodule "src/sonic-frr/frr"]
 	path = src/sonic-frr/frr
 	url = https://github.com/Azure/sonic-frr.git
-	branch = frr/7.5
+	branch = frr/8.2
 [submodule "platform/p4/p4-hlir/p4-hlir-v1.1"]
 	path = platform/p4/p4-hlir/p4-hlir-v1.1
 	url = https://github.com/p4lang/p4-hlir.git
@@ -103,6 +103,6 @@
 [submodule "src/sonic-p4rt/sonic-pins"]
 	path = src/sonic-p4rt/sonic-pins
 	url = https://github.com/Azure/sonic-pins.git
-[submodule "src/thrift_0_14_1/thrift"]
-	path = src/thrift_0_14_1/thrift
-	url = https://github.com/apache/thrift.git
+[submodule "src/ptf-py3"]
+	path = src/ptf-py3
+	url = https://github.com/p4lang/ptf.git

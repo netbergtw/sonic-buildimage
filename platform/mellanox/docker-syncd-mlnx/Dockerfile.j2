@@ -15,7 +15,7 @@
 ## limitations under the License.
 ##
 {% from "dockers/dockerfile-macros.j2" import install_debian_packages, install_python_wheels, copy_files %}
-FROM docker-config-engine-buster
+FROM docker-config-engine-bullseye-{{DOCKER_USERNAME}}:{{DOCKER_USERTAG}}
 
 ARG docker_container_name
 
@@ -29,11 +29,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y \
         libxml2     \
-        python-pip  \
-        python-dev \
-        python-setuptools
+        python3-pip  \
+        python3-dev \
+        python-is-python3 \
+{%- if ENABLE_ASAN == "y" %}
+        libasan6 \
+{%- endif %}
+        python3-setuptools
 
-RUN pip2 install --upgrade pip
+RUN pip3 install --upgrade pip
 RUN apt-get purge -y python-pip
 
 {% if docker_syncd_mlnx_debs.strip() -%}
@@ -58,8 +62,12 @@ RUN apt-get clean -y && \
     apt-get autoremove -y && \
     rm -rf /debs
 
-COPY ["supervisord.conf", "/etc/supervisor/conf.d/"]
+COPY ["supervisord.conf.j2", "/usr/share/sonic/templates/"]
 COPY ["files/supervisor-proc-exit-listener", "/usr/bin"]
 COPY ["critical_processes", "/etc/supervisor/"]
+
+RUN mkdir -p /etc/supervisor/conf.d/
+RUN sonic-cfggen -a "{\"ENABLE_ASAN\":\"{{ENABLE_ASAN}}\"}" -t /usr/share/sonic/templates/supervisord.conf.j2 > /etc/supervisor/conf.d/supervisord.conf
+RUN rm -f /usr/share/sonic/templates/supervisord.conf.j2
 
 ENTRYPOINT ["/usr/local/bin/supervisord"]

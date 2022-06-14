@@ -13,6 +13,10 @@ module sonic-port{
 		prefix ext;
 	}
 
+	import sonic-macsec {
+		prefix macsec;
+	}
+
 	description "PORT yang Module for SONiC OS";
 
 	revision 2019-07-01 {
@@ -57,7 +61,15 @@ module sonic-port{
 				leaf speed {
 					mandatory true;
 					type uint32 {
-						range 1..400000;
+						range 1..800000;
+					}
+				}
+
+				leaf link_training {
+					description "Port link training mode";
+
+					type string {
+						pattern "on|off";
 					}
 				}
 
@@ -74,7 +86,7 @@ module sonic-port{
 					
 					type union {
 						type uint32 {
-							range 1..400000;
+							range 1..800000;
 						}
 						type string {
 							pattern "all";
@@ -151,6 +163,24 @@ module sonic-port{
 
 				leaf mux_cable {
 					type boolean;
+				}
+
+				leaf macsec {
+					type leafref {
+						path "/macsec:sonic-macsec/macsec:MACSEC_PROFILE/macsec:MACSEC_PROFILE_LIST/macsec:name";
+					}
+				}
+
+				leaf tx_power {
+						description "Target output power(dBm) for the 400G ZR transceiver";
+						type decimal64 {
+							fraction-digits 1;
+						}
+				}
+
+				leaf laser_freq {
+						description "Target laser frequency(GHz) for the 400G ZR transceiver";
+						type int32;
 				}
 
 			} /* end of list PORT_LIST */
