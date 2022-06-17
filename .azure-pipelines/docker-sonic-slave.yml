@@ -21,6 +21,7 @@ pr:
     - sonic-slave-jessie
     - sonic-slave-stretch
     - sonic-slave-buster
+    - src/sonic-build-hooks
 
 parameters:
 - name: 'arches'
@@ -41,6 +42,11 @@ parameters:
 - name: registry_conn
   type: string
   default: sonicdev
+
+variables:
+- ${{ if eq(variables['Build.SourceBranchName'], '202012') }}:
+  - name: BUILD_OPTIONS
+    value: 'SONIC_VERSION_CONTROL_COMPONENTS=deb,py2,py3,web,git,docker'
 
 stages:
 - stage: Build
@@ -80,7 +86,7 @@ stages:
 
               echo ${{ arch }} > .arch
 
-              DOCKER_DATA_ROOT_FOR_MULTIARCH=/data/march/docker BLDENV=${{ dist }} make -f Makefile.work sonic-slave-build | tee $tmpfile
+              DOCKER_DATA_ROOT_FOR_MULTIARCH=/data/march/docker BLDENV=${{ dist }} $(BUILD_OPTIONS) make -f Makefile.work sonic-slave-build | tee $tmpfile
               SLAVE_BASE_TAG=$(grep "^Checking sonic-slave-base image:" $tmpfile | awk -F ':' '{print $3}')
               SLAVE_TAG=$(grep "^Checking sonic-slave image:" $tmpfile | awk -F ':' '{print $3}')
 

@@ -31,12 +31,11 @@ function updateSyslogConf()
 {
     # On multiNPU platforms, change the syslog target ip to docker0 ip to allow logs from containers
     # running on the namespace to reach the rsyslog service running on the host
-    # Also update the container name  
+    # Also update the container name
     if [[ ($NUM_ASIC -gt 1) ]]; then
         TARGET_IP=$(docker network inspect bridge --format={{ "'{{(index .IPAM.Config 0).Gateway}}'" }})
         CONTAINER_NAME="$DOCKERNAME"
         TMP_FILE="/tmp/rsyslog.$CONTAINER_NAME.conf"
-
         sonic-cfggen -t /usr/share/sonic/templates/rsyslog-container.conf.j2 -a "{\"target_ip\": \"$TARGET_IP\", \"container_name\": \"$CONTAINER_NAME\" }"  > $TMP_FILE
         docker cp $TMP_FILE ${DOCKERNAME}:/etc/rsyslog.conf
         rm -rf $TMP_FILE
@@ -116,7 +115,8 @@ function postStartAction()
           sleep 1;
         done
         if [[ ("$BOOT_TYPE" == "warm" || "$BOOT_TYPE" == "fastfast") && -f $WARM_DIR/dump.rdb ]]; then
-            rm -f $WARM_DIR/dump.rdb
+            # retain the dump file from last boot for debugging purposes
+            mv $WARM_DIR/dump.rdb $WARM_DIR/dump.rdb.old
         else
             # If there is a config_db.json dump file, load it.
             if [ -r /etc/sonic/config_db$DEV.json ]; then
@@ -157,6 +157,7 @@ function postStartAction()
         test -e /host/fast-reboot/fdb.json && docker cp /host/fast-reboot/fdb.json swss$DEV:/
         test -e /host/fast-reboot/arp.json && docker cp /host/fast-reboot/arp.json swss$DEV:/
         test -e /host/fast-reboot/default_routes.json && docker cp /host/fast-reboot/default_routes.json swss$DEV:/
+        test -e /host/fast-reboot/media_config.json && docker cp /host/fast-reboot/media_config.json swss$DEV:/
         rm -fr /host/fast-reboot
     fi
     docker exec swss$DEV touch /ready # signal swssconfig.sh to go
@@ -249,15 +250,15 @@ start() {
     {%- endif %}
 
     {%- if docker_container_name == "swss" %}
-    # Obtain the vendor name
-    ASIC_VENDOR=`$SONIC_CFGGEN -y /etc/sonic/sonic_version.yml -v asic_type`
-
     # Generate the asic_table.json and peripheral_table.json
     if [ ! -f /etc/sonic/asic_table.json ] && [ -f /usr/share/sonic/templates/asic_table.j2 ]; then
         sonic-cfggen -d -t /usr/share/sonic/templates/asic_table.j2 > /etc/sonic/asic_table.json
     fi
     if [ ! -f /etc/sonic/peripheral_table.json ] && [ -f /usr/share/sonic/device/$PLATFORM/port_peripheral_config.j2 ]; then
         sonic-cfggen -d -t /usr/share/sonic/device/$PLATFORM/port_peripheral_config.j2 > /etc/sonic/peripheral_table.json
+    fi
+    if [ ! -f /etc/sonic/zero_profiles.json ] && [ -f /usr/share/sonic/templates/zero_profiles.j2 ]; then
+        sonic-cfggen -d -t /usr/share/sonic/device/$PLATFORM/zero_profiles.j2 > /etc/sonic/zero_profiles.json
     fi
     {%- endif %}
 
@@ -354,7 +355,7 @@ start() {
 {%- endif %}
 {%- if sonic_asic_platform == "mellanox" %}
 {%- if docker_container_name == "syncd" %}
-        -v /var/log/mellanox/sniffer:/var/log/mellanox/sniffer:rw \
+        -v /var/log/mellanox:/var/log/mellanox:rw \
         -v mlnx_sdk_socket:/var/run/sx_sdk \
         -v mlnx_sdk_ready:/tmp \
         -v /dev/shm:/dev/shm:rw \
@@ -374,8 +375,11 @@ start() {
         -v /var/run/docker-syncd$DEV:/var/run/sswsyncd \
 {%- endif %}
 {%- endif %}
+{%- if docker_container_name == "pmon" %}
+    -v /usr/share/sonic/firmware:/usr/share/sonic/firmware:rw \
+{%- endif %}
 {%- if docker_container_name == "swss" %}
-        -e ASIC_VENDOR=$ASIC_VENDOR \
+        -e ASIC_VENDOR={{ sonic_asic_platform }} \
 {%- endif -%}
 {%- if docker_container_name == "bgp" %}
         -v /etc/sonic/frr/$DEV:/etc/frr:rw \
@@ -432,6 +436,17 @@ stop() {
     {%- endif %}
 }
 
+kill() {
+    {%- if docker_container_name == "database" %}
+    docker kill $DOCKERNAME
+    if [ "$DEV" ]; then
+        ip netns delete "$NET_NS"
+    fi
+    {%- else %}
+    /usr/local/bin/container kill $DOCKERNAME
+    {%- endif %}
+}
+
 DOCKERNAME={{docker_container_name}}
 OP=$1
 DEV=$2 # namespace/device number to operate on
@@ -459,7 +474,7 @@ fi
 [ -f /etc/sonic/sonic-environment ] && . /etc/sonic/sonic-environment
 
 case "$1" in
-    start|wait|stop)
+    start|wait|stop|kill)
         $1
         ;;
     *)

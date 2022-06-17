@@ -9,6 +9,7 @@ from swsscommon import swsscommon
 from .config import ConfigMgr
 from .directory import Directory
 from .log import log_notice, log_crit
+from .managers_advertise_rt import AdvertiseRouteMgr
 from .managers_allow_list import BGPAllowListMgr
 from .managers_bbr import BBRMgr
 from .managers_bgp import BGPPeerMgrBase
@@ -16,6 +17,7 @@ from .managers_db import BGPDataBaseMgr
 from .managers_intf import InterfaceMgr
 from .managers_setsrc import ZebraSetSrc
 from .managers_static_rt import StaticRouteMgr
+from .managers_rm import RouteMapMgr
 from .runner import Runner, signal_handler
 from .template import TemplateFabric
 from .utils import read_constants
@@ -57,6 +59,9 @@ def do_work():
         BBRMgr(common_objs, "CONFIG_DB", "BGP_BBR"),
         # Static Route Managers
         StaticRouteMgr(common_objs, "CONFIG_DB", "STATIC_ROUTE"),
+        # Route Advertisement Managers
+        AdvertiseRouteMgr(common_objs, "STATE_DB", swsscommon.STATE_ADVERTISE_NETWORK_TABLE_NAME),
+        RouteMapMgr(common_objs, "APPL_DB", swsscommon.APP_BGP_PROFILE_TABLE_NAME),
     ]
     runner = Runner(common_objs['cfg_mgr'])
     for mgr in managers:

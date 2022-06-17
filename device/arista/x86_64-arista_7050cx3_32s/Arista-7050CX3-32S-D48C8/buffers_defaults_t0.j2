@@ -11,7 +11,7 @@
 {%- macro generate_buffer_pool_and_profiles() %}
     "BUFFER_POOL": {
         "ingress_lossless_pool": {
-            "size": "32669440",
+            "size": "32689152",
             "type": "ingress",
             "mode": "dynamic",
             "xoff": "2058240"
@@ -44,4 +44,10 @@
             "dynamic_th":"-1"
         }
     },
+{%- endmacro %}
+
+{% import 'buffers_extra_queues.j2' as defs with context %}
+
+{%- macro generate_queue_buffers_with_extra_lossless_queues(port_names, port_names_require_extra_buffer) %}
+{{ defs.generate_queue_buffers_with_extra_lossless_queues(port_names, port_names_require_extra_buffer) }}
 {%- endmacro %}

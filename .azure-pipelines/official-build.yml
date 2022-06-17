@@ -12,8 +12,19 @@ schedules:
     - 202012
   always: true
 
+resources:
+  repositories:
+  - repository: buildimage
+    type: github
+    name: Azure/sonic-buildimage
+    ref: master
+    endpoint: build
+
 trigger: none
 pr: none
+
+variables:
+- template: .azure-pipelines/template-variables.yml@buildimage
 
 stages:
 - stage: Build
@@ -21,7 +32,7 @@ stages:
   variables:
     CACHE_MODE: wcache
     ${{ if eq(variables['Build.SourceBranchName'], '202012') }}:
-      VERSION_CONTROL_OPTIONS: 'SONIC_VERSION_CONTROL_COMPONENTS=deb,py2,py3,web'
+      VERSION_CONTROL_OPTIONS: 'SONIC_VERSION_CONTROL_COMPONENTS=deb,py2,py3,web,git,docker'
   jobs:
   - template: azure-pipelines-build.yml
     parameters:
