@@ -169,6 +169,10 @@ run_pip_command()
         elif [[ "$para" == *.whl ]]; then
             package_name=$(echo $para | cut -d- -f1 | tr _ .)
             $SUDO sed "/^${package_name}==/d" -i $tmp_version_file
+        elif [[ "$para" == *==* ]]; then
+            # fix pip package constraint conflict issue
+            package_name=$(echo $para | cut -d= -f1)
+            $SUDO sed "/^${package_name}==/d" -i $tmp_version_file
         fi
     done
 
@@ -254,6 +258,59 @@ acquire_apt_installation_lock()
 release_apt_installation_lock()
 {
     rm -f $DPKG_INSTALLTION_LOCK_FILE
+}
+
+update_preference_deb()
+{
+    local version_file="$VERSION_PATH/versions-deb"
+    if [ -f "$version_file" ]; then
+        rm -f $VERSION_DEB_PREFERENCE
+        for pacakge_version in $(cat "$version_file"); do
+            package=$(echo $pacakge_version | awk -F"==" '{print $1}')
+            version=$(echo $pacakge_version | awk -F"==" '{print $2}')
+            echo -e "Package: $package\nPin: version $version\nPin-Priority: 999\n\n" >> $VERSION_DEB_PREFERENCE
+        done
+    fi
+}
+
+update_version_file()
+{
+    local version_name=$1
+    local pre_version_file="$(ls $PRE_VERSION_PATH/${version_name}-* 2>/dev/null | head -n 1)"
+    local version_file="$VERSION_PATH/$1"
+    if [ ! -f "$pre_version_file" ]; then
+        return 0
+    fi
+    local pacakge_versions="$(cat $pre_version_file)"
+    [ -f "$version_file" ] && pacakge_versions="$pacakge_versions $(cat $version_file)"
+    declare -A versions
+    for pacakge_version in $pacakge_versions; do
+        package=$(echo $pacakge_version | awk -F"==" '{print $1}')
+        version=$(echo $pacakge_version | awk -F"==" '{print $2}')
+        if [ -z "$package" ] || [ -z "$version" ]; then
+            continue
+        fi
+        versions[$package]=$version
+    done
+
+    tmp_file=$(mktemp)
+    for package in "${!versions[@]}"; do
+        echo "$package==${versions[$package]}" >> $tmp_file
+    done
+    sort -u $tmp_file > $version_file
+    rm -f $tmp_file
+    
+    if [[ "${version_name}" == *-deb ]]; then
+        update_preference_deb
+    fi
+}
+
+update_version_files()
+{
+    local version_names="versions-deb versions-py2 versions-py3"
+    for version_name in $version_names; do
+        update_version_file $version_name
+    done
 }
 
 ENABLE_VERSION_CONTROL_DEB=$(check_version_control "deb")
