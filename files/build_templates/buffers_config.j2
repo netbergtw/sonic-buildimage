@@ -47,6 +47,9 @@ def
             {%- if DEVICE_NEIGHBOR_METADATA is defined and DEVICE_NEIGHBOR_METADATA[DEVICE_NEIGHBOR[local_port].name] %}
                 {%- set neighbor = DEVICE_NEIGHBOR_METADATA[DEVICE_NEIGHBOR[local_port].name] %}
                 {%- set neighbor_role = neighbor.type %}
+                {%- if 'edgezoneaggregator' == neighbor_role | lower %}
+                         {%- set neighbor_role = 'LeafRouter' %}
+                {%- endif %}
                 {%- if 'asic' == neighbor_role | lower %}
                          {%- set roles1 = 'internal' %}
                          {%- if 'internal' not in ports2cable %}
@@ -167,10 +170,12 @@ def
 {{ defs.generate_profile_lists_with_inactive_ports(port_names_active, port_names_inactive) }},
 {% endif %}
 
-{%- if defs.generate_pg_profils is defined %}
-{{ defs.generate_pg_profils(port_names_active) }}
+{% if (defs.generate_pg_profiles_with_extra_lossless_pgs_with_inactive_ports is defined) and (port_names_extra_queues != '') %}
+{{ defs.generate_pg_profiles_with_extra_lossless_pgs_with_inactive_ports(port_names_active, port_names_extra_queues, port_names_inactive) }},
 {% elif defs.generate_pg_profiles_with_inactive_ports is defined %}
 {{ defs.generate_pg_profiles_with_inactive_ports(port_names_active, port_names_inactive) }},
+{% elif defs.generate_pg_profils is defined %}
+{{ defs.generate_pg_profils(port_names_active) }}
 {% else %}
     "BUFFER_PG": {
 {% for port in PORT_ACTIVE %}
@@ -187,14 +192,14 @@ def
     },
 {% endif %}
 
-{% if defs.generate_queue_buffers is defined %}
-{{ defs.generate_queue_buffers(port_names_active) }}
-{% elif defs.generate_queue_buffers_with_inactive_ports is defined %}
-{{ defs.generate_queue_buffers_with_inactive_ports(port_names_active, port_names_inactive) }}
-{% elif (defs.generate_queue_buffers_with_extra_lossless_queues_with_inactive_ports is defined) and (port_names_extra_queues != '') %}
+{% if (defs.generate_queue_buffers_with_extra_lossless_queues_with_inactive_ports is defined) and (port_names_extra_queues != '') %}
 {{ defs.generate_queue_buffers_with_extra_lossless_queues_with_inactive_ports(port_names_active, port_names_extra_queues, port_names_inactive) }}
 {% elif (defs.generate_queue_buffers_with_extra_lossless_queues is defined) and (port_names_extra_queues != '') %}
 {{ defs.generate_queue_buffers_with_extra_lossless_queues(port_names_active, port_names_extra_queues) }}
+{% elif defs.generate_queue_buffers is defined %}
+{{ defs.generate_queue_buffers(port_names_active) }}
+{% elif defs.generate_queue_buffers_with_inactive_ports is defined %}
+{{ defs.generate_queue_buffers_with_inactive_ports(port_names_active, port_names_inactive) }}
 {% else %}
     "BUFFER_QUEUE": {
 {% for port in PORT_ACTIVE %}

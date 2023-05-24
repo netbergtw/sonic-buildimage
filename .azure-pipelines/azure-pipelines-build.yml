@@ -68,7 +68,6 @@ jobs:
           timeoutInMinutes: 2880
           variables:
             PLATFORM_ARCH: arm64
-            BUILD_OPTIONS: ${{ parameters.buildOptions }} SONIC_VERSION_CONTROL_COMPONENTS=
         - name: generic
           variables:
             dbg_image: yes
@@ -82,7 +81,6 @@ jobs:
           timeoutInMinutes: 2880
           variables:
             PLATFORM_ARCH: armhf
-            BUILD_OPTIONS: ${{ parameters.buildOptions }} SONIC_VERSION_CONTROL_COMPONENTS=
         - name: mellanox
           variables:
             dbg_image: yes
@@ -97,6 +95,8 @@ jobs:
             platform_rpc: nephos
 
     buildSteps:
+      - template: .azure-pipelines/template-skipvstest.yml@buildimage
+      - template: .azure-pipelines/template-daemon.yml@buildimage
       - bash: |
           set -ex
           if [ $(GROUP_NAME) == vs ]; then
@@ -107,7 +107,7 @@ jobs:
             make $BUILD_OPTIONS target/docker-sonic-vs.gz target/sonic-vs.img.gz target/docker-ptf.gz
             if [ $(Build.Reason) != 'PullRequest' ];then
               gzip -kd target/sonic-vs.img.gz
-              SONIC_RUN_CMDS="qemu-img convert target/sonic-vs.img -O vhdx -o subformat=dynamic target/sonic-vs.vhdx" make sonic-slave-run
+              SONIC_RUN_CMDS="qemu-img convert target/sonic-vs.img -O vhdx -o subformat=dynamic target/sonic-vs.vhdx" make $BUILD_OPTIONS sonic-slave-run
               rm target/sonic-vs.img
             fi
           else
@@ -122,7 +122,17 @@ jobs:
               make $BUILD_OPTIONS target/sonic-$(GROUP_NAME).raw
             fi
             if [ $(docker_syncd_rpc_image) == yes ]; then
+              # workaround for issue in rules/sairedis.dep, git ls-files will list un-exist files for cache
               make $BUILD_OPTIONS ENABLE_SYNCD_RPC=y target/docker-syncd-$(platform_rpc)-rpc.gz
+              pushd ./src/sonic-sairedis/SAI
+              git stash
+              popd
+              if [ $(GROUP_NAME) == broadcom ]; then
+                make $BUILD_OPTIONS ENABLE_SYNCD_RPC=y SAITHRIFT_V2=y target/docker-saiserverv2-brcm.gz
+                pushd ./src/sonic-sairedis/SAI
+                git stash
+                popd
+              fi
             fi
             if [ $(syncd_rpc_image) == yes ]; then
               make $BUILD_OPTIONS ENABLE_SYNCD_RPC=y target/sonic-$(GROUP_NAME).bin
@@ -131,4 +141,4 @@ jobs:
             make $BUILD_OPTIONS target/sonic-$(GROUP_NAME).bin
           fi
         displayName: "Build sonic image"
-      - template: check-dirty-version.yml
+      - template: .azure-pipelines/check-dirty-version.yml@buildimage

@@ -1,6 +1,6 @@
 bitarray==1.5.3
 ipaddress==1.0.23
-lxml==4.6.3
+lxml==4.9.1
 natsort==6.2.1
 netaddr==0.8.0
 pyang==2.5.3
@@ -8,5 +8,5 @@ pyangbind==0.8.1
 pyyaml==5.4.1
 redis==3.5.3
 redis-dump-load==1.1
-regex==2022.6.2
+regex==2023.5.5
 six==1.16.0

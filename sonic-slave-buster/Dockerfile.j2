@@ -12,36 +12,7 @@ FROM {{ prefix }}debian:buster
 MAINTAINER gulv@microsoft.com
 
 COPY ["no-check-valid-until", "/etc/apt/apt.conf.d/"]
-
-RUN echo "deb [arch=amd64] http://debian-archive.trafficmanager.net/debian/ buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src [arch=amd64] http://debian-archive.trafficmanager.net/debian/ buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=amd64] http://debian-archive.trafficmanager.net/debian-security/ buster/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src [arch=amd64] http://debian-archive.trafficmanager.net/debian-security/ buster/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=amd64] http://debian-archive.trafficmanager.net/debian buster-backports main" >> /etc/apt/sources.list && \
-        echo "deb [arch=amd64] http://packages.trafficmanager.net/debian/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=amd64] http://packages.trafficmanager.net/debian/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
-
-{%- if CONFIGURED_ARCH == "armhf" %}
-RUN echo "deb [arch=armhf] http://deb.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list && \
-        echo "deb-src [arch=armhf] http://deb.debian.org/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=armhf] http://deb.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src [arch=armhf] http://deb.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=armhf] http://security.debian.org buster/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src [arch=armhf] http://security.debian.org buster/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo 'deb [arch=armhf] http://ftp.debian.org/debian buster-backports main' >> /etc/apt/sources.list && \
-        echo "deb [arch=armhf] http://packages.trafficmanager.net/debian/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=armhf] http://packages.trafficmanager.net/debian/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
-{%- elif CONFIGURED_ARCH == "arm64" %}
-RUN echo "deb [arch=arm64] http://deb.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list && \
-        echo "deb-src [arch=arm64] http://deb.debian.org/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=arm64] http://deb.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src [arch=arm64] http://deb.debian.org/debian buster-updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=arm64] http://security.debian.org buster/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb-src [arch=arm64] http://security.debian.org buster/updates main contrib non-free" >> /etc/apt/sources.list && \
-        echo 'deb [arch=arm64] http://ftp.debian.org/debian buster-backports main' >> /etc/apt/sources.list && \
-        echo "deb [arch=arm64] http://packages.trafficmanager.net/debian/debian buster main contrib non-free" >> /etc/apt/sources.list && \
-        echo "deb [arch=arm64] http://packages.trafficmanager.net/debian/debian buster-updates main contrib non-free" >> /etc/apt/sources.list
-{%- endif %}
+COPY ["sources.list.{{ CONFIGURED_ARCH }}", "/etc/apt/sources.list"]
 
 ## Make apt-get non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -49,6 +20,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
         apt-utils \
         default-jre-headless \
+        openssh-server \
         curl \
         wget \
         unzip \
@@ -162,7 +134,7 @@ RUN apt-get update && apt-get install -y \
         libxml2-dev \
 # For BFN sdk build
         libusb-1.0-0-dev \
-        libcurl3-nss-dev \
+        libcurl4-openssl-dev \
         libunwind8-dev \
         telnet \
         libc-ares2 \
@@ -250,6 +222,8 @@ RUN apt-get update && apt-get install -y \
 # For gtest
         libgtest-dev \
         cmake \
+# For gmock
+        libgmock-dev \
 # For pam_tacplus build
         autoconf-archive \
 # For iproute2
@@ -332,10 +306,6 @@ RUN apt-get update && apt-get install -y \
         libgtest-dev \
         libgcc-8-dev
 
-# For openssh-server
-RUN apt-get -y install -t buster-backports \
-        openssh-server \
-        libfido2-dev
 RUN apt-get -y build-dep openssh
 
 # Build fix for ARMHF buster libsairedis
@@ -453,6 +423,9 @@ RUN pip3 install pyang==2.4.0
 # For mgmt-framework build
 RUN pip2 install mmh3==2.5.1
 RUN pip3 install mmh3==2.5.1
+
+# For latest version error, use previous version
+RUN pip3 install deepdiff==6.2.2
 
 RUN apt-get install -y xsltproc
 

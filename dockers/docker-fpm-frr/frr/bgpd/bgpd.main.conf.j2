@@ -48,12 +48,15 @@ router bgp {{ DEVICE_METADATA['localhost']['bgp_asn'] }}
   bgp log-neighbor-changes
   no bgp default ipv4-unicast
   no bgp ebgp-requires-policy
+{% if (DEVICE_METADATA is defined) and ('localhost' in DEVICE_METADATA) and ('subtype' in DEVICE_METADATA['localhost']) and (DEVICE_METADATA['localhost']['subtype'].lower() == 'dualtor') %}
+  coalesce-time 10000
+{% endif %}
 !
 {% if constants.bgp.multipath_relax.enabled is defined and constants.bgp.multipath_relax.enabled %}
   bgp bestpath as-path multipath-relax
 {% endif %}
 !
-{% if constants.bgp.graceful_restart.enabled is defined and constants.bgp.graceful_restart.enabled %}
+{% if constants.bgp.graceful_restart.enabled is defined and constants.bgp.graceful_restart.enabled and DEVICE_METADATA['localhost']['type'] == 'ToRRouter' %}
   bgp graceful-restart restart-time {{ constants.bgp.graceful_restart.restart_time | default(240) }}
   bgp graceful-restart
   bgp graceful-restart preserve-fw-state

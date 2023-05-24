@@ -224,7 +224,7 @@ sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install thrift
 # Install system-health Python 3 package
 SYSTEM_HEALTH_PY3_WHEEL_NAME=$(basename {{system_health_py3_wheel_path}})
 sudo cp {{system_health_py3_wheel_path}} $FILESYSTEM_ROOT/$SYSTEM_HEALTH_PY3_WHEEL_NAME
-sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install $SYSTEM_HEALTH_PY3_WHEEL_NAME
+sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install $SYSTEM_HEALTH_PY3_WHEEL_NAME docker==6.1.1
 sudo rm -rf $FILESYSTEM_ROOT/$SYSTEM_HEALTH_PY3_WHEEL_NAME
 
 # Install prerequisites needed for installing the Python m2crypto package, used by sonic-utilities
@@ -416,7 +416,7 @@ sudo https_proxy=$https_proxy LANG=C chroot $FILESYSTEM_ROOT pip3 install watchd
 {% if include_kubernetes == "y" %}
 # Point to kubelet to /etc/resolv.conf
 #
-echo 'KUBELET_EXTRA_ARGS="--resolv-conf=/etc/resolv.conf"' | sudo tee -a  $FILESYSTEM_ROOT/etc/default/kubelet
+echo 'KUBELET_EXTRA_ARGS="--resolv-conf=/etc/resolv.conf --cgroup-driver=cgroupfs --node-ip=::"' | sudo tee -a  $FILESYSTEM_ROOT/etc/default/kubelet
 
 # Copy Flannel conf file into sonic-templates
 #
@@ -497,6 +497,9 @@ then
 fi
 {% endif %}
 
+# Copy backend acl template
+sudo cp $BUILD_TEMPLATES/backend_acl.j2 $FILESYSTEM_ROOT_USR_SHARE_SONIC_TEMPLATES/
+
 # Copy hostname configuration scripts
 sudo cp $IMAGE_CONFIGS/hostname/hostname-config.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM
 echo "hostname-config.service" | sudo tee -a $GENERATED_SERVICE_FILE
@@ -546,6 +549,11 @@ sudo cp $IMAGE_CONFIGS/config-chassisdb/config-chassisdb $FILESYSTEM_ROOT/usr/bi
 echo "config-chassisdb.service" | sudo tee -a $GENERATED_SERVICE_FILE
 sudo LANG=C chroot $FILESYSTEM_ROOT systemctl enable config-chassisdb.service
 
+# Copy backend-acl script and service file
+sudo cp $IMAGE_CONFIGS/backend_acl/backend-acl.service $FILESYSTEM_ROOT_USR_LIB_SYSTEMD_SYSTEM/backend-acl.service
+sudo cp $IMAGE_CONFIGS/backend_acl/backend_acl.py $FILESYSTEM_ROOT/usr/bin/backend_acl.py
+echo "backend-acl.service" | sudo tee -a $GENERATED_SERVICE_FILE
+
 # Copy SNMP configuration files
 sudo cp $IMAGE_CONFIGS/snmp/snmp.yml $FILESYSTEM_ROOT/etc/sonic/
 
@@ -590,14 +598,23 @@ sudo LANG=C chroot $FILESYSTEM_ROOT depmod -a {{kversion}}
 sudo dpkg --root=$FILESYSTEM_ROOT -i {{deb}} || sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y install -f --download-only
 
 sudo mkdir -p $FILESYSTEM_ROOT/$PLATFORM_DIR/{{dev}}
-sudo cp {{ deb }} $FILESYSTEM_ROOT/$PLATFORM_DIR/{{dev}}/
+sudo mkdir -p $FILESYSTEM_ROOT/$PLATFORM_DIR/common
+sudo cp {{ deb }} $FILESYSTEM_ROOT/$PLATFORM_DIR/common/
+sudo ln -sf "../common/{{ debfilename }}" "$FILESYSTEM_ROOT/$PLATFORM_DIR/{{dev}}/{{ debfilename }}"
 for f in $(find $FILESYSTEM_ROOT/var/cache/apt/archives -name "*.deb"); do
-    sudo mv $f $FILESYSTEM_ROOT/$PLATFORM_DIR/{{dev}}/
+    sudo mv $f $FILESYSTEM_ROOT/$PLATFORM_DIR/common/
+    sudo ln -sf "../common/$(basename $f)" "$FILESYSTEM_ROOT/$PLATFORM_DIR/{{dev}}/$(basename $f)"
 done
 
 sudo dpkg --root=$FILESYSTEM_ROOT -P {{ debname }}
 
 {% endfor %}
+# create a trivial apt repo if any of the debs have dependencies, including between lazy debs
+if [ $(for f in $FILESYSTEM_ROOT/$PLATFORM_DIR/common/*.deb; do \
+           sudo dpkg -I $f | grep "Depends:\|Pre-Depends:"; done | wc -l) -gt 0 ]; then
+    (cd $FILESYSTEM_ROOT/$PLATFORM_DIR/common && sudo dpkg-scanpackages . | \
+         sudo gzip | sudo tee Packages.gz > /dev/null)
+fi
 {% endif %}
 
 # Remove sshd host keys, and will regenerate on first sshd start. This needs to be
@@ -784,9 +801,28 @@ sudo cp {{src}} $FILESYSTEM_ROOT/{{dst}}
 
 {% if sonic_asic_platform == "mellanox" %}
 sudo mkdir -p $FILESYSTEM_ROOT/etc/mlnx/
-sudo cp $files_path/$MLNX_SPC_FW_FILE $FILESYSTEM_ROOT/etc/mlnx/fw-SPC.mfa
-sudo cp $files_path/$MLNX_SPC2_FW_FILE $FILESYSTEM_ROOT/etc/mlnx/fw-SPC2.mfa
-sudo cp $files_path/$MLNX_SPC3_FW_FILE $FILESYSTEM_ROOT/etc/mlnx/fw-SPC3.mfa
+
+if [ -n "$MLNX_BIOS_ARCHIVES" ]; then
+sudo mkdir -p $FILESYSTEM_ROOT/etc/mlnx/bios/
+sudo mkdir -p $FILESYSTEM_ROOT/$PLATFORM_DIR/fw/bios/
+for MLNX_BIOS_ARCHIVE in $MLNX_BIOS_ARCHIVES; do
+    sudo cp $files_path/$MLNX_BIOS_ARCHIVE $FILESYSTEM_ROOT/$PLATFORM_DIR/fw/bios/
+    # Link old BIOS location to not break existing automation/scripts
+    sudo ln -s /host/image-$SONIC_IMAGE_VERSION/$PLATFORM_DIR/fw/bios/$MLNX_BIOS_ARCHIVE $FILESYSTEM_ROOT/etc/mlnx/bios/$MLNX_BIOS_ARCHIVE
+done
+fi
+
+declare -rA FW_FILE_MAP=( \
+    [$MLNX_SPC_FW_FILE]="fw-SPC.mfa" \
+    [$MLNX_SPC2_FW_FILE]="fw-SPC2.mfa" \
+    [$MLNX_SPC3_FW_FILE]="fw-SPC3.mfa" \
+)
+sudo mkdir -p $FILESYSTEM_ROOT/$PLATFORM_DIR/fw/asic/
+for fw_file_name in ${!FW_FILE_MAP[@]}; do
+    sudo cp $files_path/$fw_file_name $FILESYSTEM_ROOT/$PLATFORM_DIR/fw/asic/${FW_FILE_MAP[$fw_file_name]}
+    # Link old FW location to not break existing automation/scripts
+    sudo ln -s /host/image-$SONIC_IMAGE_VERSION/$PLATFORM_DIR/fw/asic/${FW_FILE_MAP[$fw_file_name]} $FILESYSTEM_ROOT/etc/mlnx/${FW_FILE_MAP[$fw_file_name]}
+done
 sudo cp $files_path/$ISSU_VERSION_FILE $FILESYSTEM_ROOT/etc/mlnx/issu-version
 sudo cp $files_path/$MLNX_FFB_SCRIPT $FILESYSTEM_ROOT/usr/bin/mlnx-ffb.sh
 sudo cp $files_path/$MLNX_ONIE_FW_UPDATE $FILESYSTEM_ROOT/usr/bin/$MLNX_ONIE_FW_UPDATE

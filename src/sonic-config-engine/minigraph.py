@@ -5,6 +5,7 @@ import math
 import os
 import sys
 import json
+import subprocess
 from collections import defaultdict
 
 from lxml import etree as ET
@@ -62,6 +63,10 @@ class minigraph_encoder(json.JSONEncoder):
             return str(obj)
         return json.JSONEncoder.default(self, obj)
 
+def exec_cmd(cmd):
+    p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE)
+    outs, errs = p.communicate()
+
 def get_peer_switch_info(link_metadata, devices):
     peer_switch_table = {}
     peer_switch_ip = None
@@ -84,6 +89,7 @@ def parse_device(device):
     lo_prefix = None
     lo_prefix_v6 = None
     mgmt_prefix = None
+    mgmt_prefix_v6 = None
     d_type = None   # don't shadow type()
     hwsku = None
     name = None
@@ -97,6 +103,8 @@ def parse_device(device):
             lo_prefix_v6 = node.find(str(QName(ns2, "IPPrefix"))).text
         elif node.tag == str(QName(ns, "ManagementAddress")):
             mgmt_prefix = node.find(str(QName(ns2, "IPPrefix"))).text
+        elif node.tag == str(QName(ns, "ManagementAddressV6")):
+            mgmt_prefix_v6 = node.find(str(QName(ns2, "IPPrefix"))).text
         elif node.tag == str(QName(ns, "Hostname")):
             name = node.text
         elif node.tag == str(QName(ns, "HwSku")):
@@ -111,7 +119,8 @@ def parse_device(device):
     if d_type is None and str(QName(ns3, "type")) in device.attrib:
         d_type = device.attrib[str(QName(ns3, "type"))]
 
-    return (lo_prefix, lo_prefix_v6, mgmt_prefix, name, hwsku, d_type, deployment_id, cluster)
+    return (lo_prefix, lo_prefix_v6, mgmt_prefix, mgmt_prefix_v6, name, hwsku, d_type, deployment_id, cluster)
+
 
 def calculate_lcm_for_ecmp (nhdevices_bank_map, nhip_bank_map):
     banks_enumerated = {}
@@ -247,8 +256,8 @@ def parse_png(png, hname, dpg_ecmp_content = None):
 
         if child.tag == str(QName(ns, "Devices")):
             for device in child.findall(str(QName(ns, "Device"))):
-                (lo_prefix, lo_prefix_v6, mgmt_prefix, name, hwsku, d_type, deployment_id, cluster) = parse_device(device)
-                device_data = {'lo_addr': lo_prefix, 'type': d_type, 'mgmt_addr': mgmt_prefix, 'hwsku': hwsku }
+                (lo_prefix, lo_prefix_v6, mgmt_prefix, mgmt_prefix_v6, name, hwsku, d_type, deployment_id, cluster) = parse_device(device)
+                device_data = {'lo_addr': lo_prefix, 'type': d_type, 'mgmt_addr': mgmt_prefix, 'hwsku': hwsku}
                 if cluster:
                     device_data['cluster'] = cluster
                 if deployment_id:
@@ -377,7 +386,7 @@ def parse_asic_png(png, asic_name, hostname):
 
         if child.tag == str(QName(ns, "Devices")):
             for device in child.findall(str(QName(ns, "Device"))):
-                (lo_prefix, lo_prefix_v6, mgmt_prefix, name, hwsku, d_type, deployment_id, cluster) = parse_device(device)
+                (lo_prefix, lo_prefix_v6, mgmt_prefix, mgmt_prefix_v6, name, hwsku, d_type, deployment_id, cluster) = parse_device(device)
                 device_data = {'lo_addr': lo_prefix, 'type': d_type, 'mgmt_addr': mgmt_prefix, 'hwsku': hwsku }
                 if cluster:
                     device_data['cluster'] = cluster
@@ -849,6 +858,7 @@ def parse_meta(meta, hname):
     kube_data = {}
     redundancy_type = None
     downstream_redundancy_types = None
+    qos_profile = None
 
     device_metas = meta.find(str(QName(ns, "Devices")))
     for device in device_metas.findall(str(QName(ns1, "DeviceMetadata"))):
@@ -888,7 +898,9 @@ def parse_meta(meta, hname):
                     downstream_redundancy_types = value
                 elif name == "RedundancyType":
                     redundancy_type = value
-    return syslog_servers, dhcp_servers, dhcpv6_servers, ntp_servers, tacacs_servers, mgmt_routes, erspan_dst, deployment_id, region, cloudtype, resource_type, downstream_subrole, kube_data, downstream_redundancy_types, redundancy_type
+                elif name == "SonicQosProfile":
+                    qos_profile = value
+    return syslog_servers, dhcp_servers, dhcpv6_servers, ntp_servers, tacacs_servers, mgmt_routes, erspan_dst, deployment_id, region, cloudtype, resource_type, downstream_subrole, kube_data, downstream_redundancy_types, redundancy_type, qos_profile
 
 def parse_linkmeta(meta, hname):
     link = meta.find(str(QName(ns, "Link")))
@@ -1048,7 +1060,26 @@ def parse_spine_chassis_fe(results, vni, lo_intfs, phyport_intfs, pc_intfs, pc_m
 #
 ###############################################################################
 
-def filter_acl_table_bindings(acls, neighbors, port_channels, sub_role):
+def filter_acl_table_for_backend(acls, vlan_members):
+    filter_acls = {}
+    for acl_name, value in acls.items():
+        if 'everflow' not in acl_name.lower():
+            filter_acls[acl_name] = value
+
+    ports = set()
+    for vlan, member in vlan_members:
+        ports.add(member)
+    filter_acls['DATAACL'] = { 'policy_desc': 'DATAACL',
+                               'stage': 'ingress',
+                               'type': 'L3',
+                               'ports': list(ports)
+                             }
+    return filter_acls
+
+def filter_acl_table_bindings(acls, neighbors, port_channels, sub_role, device_type, is_storage_device, vlan_members):
+    if device_type == 'BackEndToRRouter' and is_storage_device:
+        return filter_acl_table_for_backend(acls, vlan_members)
+
     filter_acls = {}
     
     # If the asic role is BackEnd no ACL Table (Ctrl/Data/Everflow) is binded.
@@ -1121,6 +1152,38 @@ def enable_internal_bgp_session(bgp_sessions, filename, asic_name):
             (local_sub_role == BACKEND_ASIC_SUB_ROLE and peer_sub_role == FRONTEND_ASIC_SUB_ROLE)):
             bgp_sessions[peer_ip].update({'admin_status': 'up'})
 
+def select_mmu_profiles(profile, platform, hwsku):
+    """
+        Select MMU files based on the device metadata attribute - SonicQosProfile
+        if no QosProfile exists in the minigraph, then no action is needed.
+        if a profile exists in the minigraph,
+            - create a dir path to search 1 level down from the base path.
+            - if no such dir path exists, no action is needed.
+            - if a dir path exists, check for the presence of each file from
+              the copy list in the dir path and copy it over to the base path.
+    """
+    if not profile:
+        return
+
+    files_to_copy = ['pg_profile_lookup.ini', 'qos.json.j2', 'buffers_defaults_t0.j2', 'buffers_defaults_t1.j2']
+
+    if os.environ.get("CFGGEN_UNIT_TESTING", "0") == "2":
+        for dir_path, dir_name, files in os.walk('/sonic/device'):
+            if platform in dir_path:
+                new_path = os.path.split(dir_path)[0]
+                break
+    else:
+        new_path = '/usr/share/sonic/device'
+    path = os.path.join(new_path, platform, hwsku)
+
+    dir_path = os.path.join(path, profile)
+    if os.path.exists(dir_path):
+        for file_item in files_to_copy:
+            file_in_dir = os.path.join(dir_path, file_item)
+            if os.path.isfile(file_in_dir):
+                base_file = os.path.join(path, file_item)
+                exec_cmd(["sudo", "cp", file_in_dir, base_file])
+
 ###############################################################################
 #
 # Main functions
@@ -1189,6 +1252,7 @@ def parse_xml(filename, platform=None, port_config_file=None, asic_name=None, hw
     system_defaults = {}
     downstream_redundancy_types = None
     redundancy_type = None
+    qos_profile = None
 
     hwsku_qn = QName(ns, "HwSku")
     hostname_qn = QName(ns, "Hostname")
@@ -1219,7 +1283,7 @@ def parse_xml(filename, platform=None, port_config_file=None, asic_name=None, hw
             elif child.tag == str(QName(ns, "UngDec")):
                 (u_neighbors, u_devices, _, _, _, _, _, _) = parse_png(child, hostname, None)
             elif child.tag == str(QName(ns, "MetadataDeclaration")):
-                (syslog_servers, dhcp_servers, dhcpv6_servers, ntp_servers, tacacs_servers, mgmt_routes, erspan_dst, deployment_id, region, cloudtype, resource_type, downstream_subrole, kube_data, downstream_redundancy_types, redundancy_type) = parse_meta(child, hostname)
+                (syslog_servers, dhcp_servers, dhcpv6_servers, ntp_servers, tacacs_servers, mgmt_routes, erspan_dst, deployment_id, region, cloudtype, resource_type, downstream_subrole, kube_data, downstream_redundancy_types, redundancy_type, qos_profile) = parse_meta(child, hostname)
             elif child.tag == str(QName(ns, "LinkMetadataDeclaration")):
                 linkmetas = parse_linkmeta(child, hostname)
             elif child.tag == str(QName(ns, "DeviceInfos")):
@@ -1239,6 +1303,7 @@ def parse_xml(filename, platform=None, port_config_file=None, asic_name=None, hw
             elif child.tag == str(QName(ns, "DeviceInfos")):
                 (port_speeds_default, port_descriptions) = parse_deviceinfo(child, hwsku)
 
+    select_mmu_profiles(qos_profile, platform, hwsku)
     # set the host device type in asic metadata also
     device_type = [devices[key]['type'] for key in devices if key.lower() == hostname.lower()][0]
     if asic_name is None:
@@ -1542,6 +1607,11 @@ def parse_xml(filename, platform=None, port_config_file=None, asic_name=None, hw
     if is_storage_device:
         results['DEVICE_METADATA']['localhost']['storage_device'] = "true"
 
+    # remove bgp monitor and slb peers for storage backend
+    if is_storage_device and 'BackEnd' in current_device['type']:
+        results['BGP_MONITORS'] = {}
+        results['BGP_PEER_RANGE'] = {}
+
     results['VLAN'] = vlans
     results['VLAN_MEMBER'] = vlan_members
 
@@ -1566,7 +1636,7 @@ def parse_xml(filename, platform=None, port_config_file=None, asic_name=None, hw
     results['DHCP_RELAY'] = dhcp_relay_table
     results['NTP_SERVER'] = dict((item, {}) for item in ntp_servers)
     results['TACPLUS_SERVER'] = dict((item, {'priority': '1', 'tcp_port': '49'}) for item in tacacs_servers)
-    results['ACL_TABLE'] = filter_acl_table_bindings(acls, neighbors, pcs, sub_role)
+    results['ACL_TABLE'] = filter_acl_table_bindings(acls, neighbors, pcs, sub_role, current_device['type'], is_storage_device, vlan_members)
     results['FEATURE'] = {
         'telemetry': {
             'status': 'enabled'
@@ -1697,7 +1767,7 @@ def get_mux_cable_entries(mux_cable_ports, neighbors, devices):
 
 def parse_device_desc_xml(filename):
     root = ET.parse(filename).getroot()
-    (lo_prefix, lo_prefix_v6, mgmt_prefix, hostname, hwsku, d_type, _, _) = parse_device(root)
+    (lo_prefix, lo_prefix_v6, mgmt_prefix, mgmt_prefix_v6, hostname, hwsku, d_type, _, _) = parse_device(root)
 
     results = {}
     results['DEVICE_METADATA'] = {'localhost': {
@@ -1709,10 +1779,18 @@ def parse_device_desc_xml(filename):
     if lo_prefix_v6:
         results['LOOPBACK_INTERFACE'] = {('lo_v6', lo_prefix_v6): {}}
 
-    mgmt_intf = {}
-    mgmtipn = ipaddress.ip_network(UNICODE_TYPE(mgmt_prefix), False)
-    gwaddr = ipaddress.ip_address((next(mgmtipn.hosts())))
-    results['MGMT_INTERFACE'] = {('eth0', mgmt_prefix): {'gwaddr': gwaddr}}
+    results['MGMT_INTERFACE'] = {}
+    if mgmt_prefix:
+        mgmtipn = ipaddress.ip_network(UNICODE_TYPE(mgmt_prefix), False)
+        if mgmtipn != ipaddress.ip_network(u'0.0.0.0/0', False):
+            gwaddr = ipaddress.ip_address((next(mgmtipn.hosts())))
+            results['MGMT_INTERFACE'].update({('eth0', mgmt_prefix): {'gwaddr': gwaddr}})
+
+    if mgmt_prefix_v6:
+        mgmtipn_v6 = ipaddress.ip_network(UNICODE_TYPE(mgmt_prefix_v6), False)
+        if mgmtipn != ipaddress.ip_network(u'::/0', False):
+            gwaddr_v6 = ipaddress.ip_address((next(mgmtipn_v6.hosts())))
+            results['MGMT_INTERFACE'].update({('eth0', mgmt_prefix_v6): {'gwaddr': gwaddr_v6}})
 
     return results
 

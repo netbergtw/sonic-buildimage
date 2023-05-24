@@ -21,14 +21,10 @@ class TestJ2Files(TestCase):
         self.t0_7050cx3_port_config = os.path.join(self.test_dir, 't0_7050cx3_d48c8_port_config.ini')
         self.t1_mlnx_minigraph = os.path.join(self.test_dir, 't1-sample-graph-mlnx.xml')
         self.mlnx_port_config = os.path.join(self.test_dir, 'sample-port-config-mlnx.ini')
-        self.dell6100_t0_minigraph = os.path.join(self.test_dir, 'sample-dell-6100-t0-minigraph.xml')
-        self.mellanox2700_t0_minigraph = os.path.join(self.test_dir, 'sample-mellanox-2700-t0-minigraph.xml')
-        self.mellanox2410_t1_minigraph = os.path.join(self.test_dir, 'sample-mellanox-2410-t1-minigraph.xml')
-        self.arista7050_t0_minigraph = os.path.join(self.test_dir, 'sample-arista-7050-t0-minigraph.xml')
         self.multi_asic_minigraph = os.path.join(self.test_dir, 'multi_npu_data', 'sample-minigraph.xml')
         self.multi_asic_port_config = os.path.join(self.test_dir, 'multi_npu_data', 'sample_port_config-0.ini')
         self.radv_test_minigraph = os.path.join(self.test_dir, 'radv-test-sample-graph.xml')
-        self.dell9332_t1_minigraph = os.path.join(self.test_dir, 'sample-dell-9332-t1-minigraph.xml')
+        self.no_ip_helper_minigraph = os.path.join(self.test_dir, 't0-sample-no-ip-helper-graph.xml')
         self.output_file = os.path.join(self.test_dir, 'output')
         os.environ["CFGGEN_UNIT_TESTING"] = "2"
 
@@ -101,8 +97,9 @@ class TestJ2Files(TestCase):
 
     def test_dhcp_relay(self):
         # Test generation of wait_for_intf.sh
+        dhc_sample_data = os.path.join(self.test_dir, "dhcp-relay-sample.json")
         template_path = os.path.join(self.test_dir, '..', '..', '..', 'dockers', 'docker-dhcp-relay', 'wait_for_intf.sh.j2')
-        argument = '-m ' + self.t0_minigraph + ' -p ' + self.t0_port_config + ' -t ' + template_path + ' > ' + self.output_file
+        argument = '-m ' + self.t0_minigraph + ' -j ' + dhc_sample_data + ' -p ' + self.t0_port_config + ' -t ' + template_path + ' > ' + self.output_file
         self.run_script(argument)
         self.assertTrue(utils.cmp(os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'wait_for_intf.sh'), self.output_file))
 
@@ -111,6 +108,12 @@ class TestJ2Files(TestCase):
         argument = '-m ' + self.t0_minigraph + ' -p ' + self.t0_port_config + ' -t ' + template_path + ' > ' + self.output_file
         self.run_script(argument)
         self.assertTrue(utils.cmp(os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'docker-dhcp-relay.supervisord.conf'), self.output_file))
+
+        # Test generation of docker-dhcp-relay.supervisord.conf when a vlan is missing ip/ipv6 helpers
+        template_path = os.path.join(self.test_dir, '..', '..', '..', 'dockers', 'docker-dhcp-relay', 'docker-dhcp-relay.supervisord.conf.j2')
+        argument = '-m ' + self.no_ip_helper_minigraph + ' -p ' + self.t0_port_config + ' -t ' + template_path + ' > ' + self.output_file
+        self.run_script(argument)
+        self.assertTrue(utils.cmp(os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'docker-dhcp-relay-no-ip-helper.supervisord.conf'), self.output_file))
 
     def test_radv(self):
         # Test generation of radvd.conf with multiple ipv6 prefixes
@@ -235,120 +238,56 @@ class TestJ2Files(TestCase):
         self.assertEqual(sample_output_json, output_json)
 
     def test_qos_arista7050_render_template(self):
-        arista_dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', 'arista', 'x86_64-arista_7050_qx32s', 'Arista-7050-QX-32S')
-        qos_file = os.path.join(arista_dir_path, 'qos.json.j2')
-        port_config_ini_file = os.path.join(arista_dir_path, 'port_config.ini')
-
-        # copy qos_config.j2 to the Arista 7050 directory to have all templates in one directory
-        qos_config_file = os.path.join(self.test_dir, '..', '..', '..', 'files', 'build_templates', 'qos_config.j2')
-        shutil.copy2(qos_config_file, arista_dir_path)
-
-        argument = '-m ' + self.arista7050_t0_minigraph + ' -p ' + port_config_ini_file + ' -t ' + qos_file + ' > ' + self.output_file
-        self.run_script(argument)
-
-        # cleanup
-        qos_config_file_new = os.path.join(arista_dir_path, 'qos_config.j2')
-        os.remove(qos_config_file_new)
-
-        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'qos-arista7050.json')
-        assert utils.cmp(sample_output_file, self.output_file)
+        self._test_qos_render_template('arista', 'x86_64-arista_7050_qx32s', 'Arista-7050-QX-32S', 'sample-arista-7050-t0-minigraph.xml', 'qos-arista7050.json')
 
     def test_qos_dell9332_render_template(self):
-        dell_dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', 'dell', 'x86_64-dellemc_z9332f_d1508-r0', 'DellEMC-Z9332f-O32')
-        qos_file = os.path.join(dell_dir_path, 'qos.json.j2')
-        port_config_ini_file = os.path.join(dell_dir_path, 'port_config.ini')
-
-        # copy qos_config.j2 to the Dell Z9332 directory to have all templates in one directory
-        qos_config_file = os.path.join(self.test_dir, '..', '..', '..', 'files', 'build_templates', 'qos_config.j2')
-        shutil.copy2(qos_config_file, dell_dir_path)
-
-        argument = '-m ' + self.dell9332_t1_minigraph + ' -p ' + port_config_ini_file + ' -t ' + qos_file + ' > ' + self.output_file
-        self.run_script(argument)
-
-        # cleanup
-        qos_config_file_new = os.path.join(dell_dir_path, 'qos_config.j2')
-        os.remove(qos_config_file_new)
-
-        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'qos-dell9332.json')
-        assert utils.cmp(sample_output_file, self.output_file)
+        self._test_qos_render_template('dell', 'x86_64-dellemc_z9332f_d1508-r0', 'DellEMC-Z9332f-O32', 'sample-dell-9332-t1-minigraph.xml', 'qos-dell9332.json')
 
     def test_qos_dell6100_render_template(self):
-        dell_dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', 'dell', 'x86_64-dell_s6100_c2538-r0', 'Force10-S6100')
-        qos_file = os.path.join(dell_dir_path, 'qos.json.j2')
-        port_config_ini_file = os.path.join(dell_dir_path, 'port_config.ini')
+        self._test_qos_render_template('dell', 'x86_64-dell_s6100_c2538-r0', 'Force10-S6100', 'sample-dell-6100-t0-minigraph.xml', 'qos-dell6100.json', copy_files=True)
 
-        # copy qos_config.j2 to the Dell S6100 directory to have all templates in one directory
+    def test_qos_arista7260_render_template(self):
+        self._test_qos_render_template('arista', 'x86_64-arista_7260cx3_64', 'Arista-7260CX3-D96C16', 'sample-arista-7260-t1-minigraph-remap-disabled.xml', 'qos-arista7260.json')
+
+    def _test_qos_render_template(self, vendor, platform, sku, minigraph, expected, copy_files=False):
+        file_exist, dir_exist = self.create_machine_conf(platform, vendor)
+        dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', vendor, platform, sku)
+
+        if copy_files:
+            self.copy_mmu_templates(dir_path, revert=False)
+
+        qos_file = os.path.join(dir_path, 'qos.json.j2')
+        port_config_ini_file = os.path.join(dir_path, 'port_config.ini')
+
+        # copy qos_config.j2 to the SKU directory to have all templates in one directory
         qos_config_file = os.path.join(self.test_dir, '..', '..', '..', 'files', 'build_templates', 'qos_config.j2')
-        shutil.copy2(qos_config_file, dell_dir_path)
+        shutil.copy2(qos_config_file, dir_path)
 
-        argument = '-m ' + self.dell6100_t0_minigraph + ' -p ' + port_config_ini_file + ' -t ' + qos_file + ' > ' + self.output_file
+        minigraph = os.path.join(self.test_dir, minigraph)
+        argument = '-m ' + minigraph + ' -p ' + port_config_ini_file + ' -t ' + qos_file + ' > ' + self.output_file
         self.run_script(argument)
 
         # cleanup
-        qos_config_file_new = os.path.join(dell_dir_path, 'qos_config.j2')
+        qos_config_file_new = os.path.join(dir_path, 'qos_config.j2')
         os.remove(qos_config_file_new)
+        if copy_files:
+            self.copy_mmu_templates(dir_path, revert=True)
 
-        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'qos-dell6100.json')
+        self.remove_machine_conf(file_exist, dir_exist)
+
+        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, expected)
         assert utils.cmp(sample_output_file, self.output_file)
 
     def test_buffers_dell6100_render_template(self):
-        dell_dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', 'dell', 'x86_64-dell_s6100_c2538-r0', 'Force10-S6100')
-        buffers_file = os.path.join(dell_dir_path, 'buffers.json.j2')
-        port_config_ini_file = os.path.join(dell_dir_path, 'port_config.ini')
-
-        # copy buffers_config.j2 to the Dell S6100 directory to have all templates in one directory
-        buffers_config_file = os.path.join(self.test_dir, '..', '..', '..', 'files', 'build_templates', 'buffers_config.j2')
-        shutil.copy2(buffers_config_file, dell_dir_path)
-
-        argument = '-m ' + self.dell6100_t0_minigraph + ' -p ' + port_config_ini_file + ' -t ' + buffers_file + ' > ' + self.output_file
-        self.run_script(argument)
-
-        # cleanup
-        buffers_config_file_new = os.path.join(dell_dir_path, 'buffers_config.j2')
-        os.remove(buffers_config_file_new)
-
-        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'buffers-dell6100.json')
-        assert utils.cmp(sample_output_file, self.output_file)
+        self._test_buffers_render_template('dell', 'x86_64-dell_s6100_c2538-r0', 'Force10-S6100', 'sample-dell-6100-t0-minigraph.xml', 'buffers.json.j2', 'buffers-dell6100.json', copy_files=True)
 
     def test_buffers_mellanox2700_render_template(self):
         # Mellanox buffer template rendering for single ingress pool mode
-        mellanox_dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', 'mellanox', 'x86_64-mlnx_msn2700-r0', 'Mellanox-SN2700-D48C8')
-        buffers_file = os.path.join(mellanox_dir_path, 'buffers.json.j2')
-        port_config_ini_file = os.path.join(mellanox_dir_path, 'port_config.ini')
-
-        # copy buffers_config.j2 to the Mellanox 2700 directory to have all templates in one directory
-        buffers_config_file = os.path.join(self.test_dir, '..', '..', '..', 'files', 'build_templates', 'buffers_config.j2')
-        shutil.copy2(buffers_config_file, mellanox_dir_path)
-
-        argument = '-m ' + self.mellanox2700_t0_minigraph + ' -p ' + port_config_ini_file + ' -t ' + buffers_file + ' > ' + self.output_file
-        self.run_script(argument)
-
-        # cleanup
-        buffers_config_file_new = os.path.join(mellanox_dir_path, 'buffers_config.j2')
-        os.remove(buffers_config_file_new)
-
-        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'buffers-mellanox2700.json')
-        assert filecmp.cmp(sample_output_file, self.output_file)
+        self._test_buffers_render_template('mellanox', 'x86_64-mlnx_msn2700-r0', 'Mellanox-SN2700-D48C8', 'sample-mellanox-2700-t0-minigraph.xml', 'buffers.json.j2', 'buffers-mellanox2700.json')
 
     def test_buffers_mellanox2410_render_template(self):
         # Mellanox buffer template rendering for double ingress pools mode
-        mellanox_dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', 'mellanox', 'x86_64-mlnx_msn2410-r0', 'ACS-MSN2410')
-        buffers_file = os.path.join(mellanox_dir_path, 'buffers.json.j2')
-        port_config_ini_file = os.path.join(mellanox_dir_path, 'port_config.ini')
-
-        # copy buffers_config.j2 to the Mellanox 2410 directory to have all templates in one directory
-        buffers_config_file = os.path.join(self.test_dir, '..', '..', '..', 'files', 'build_templates', 'buffers_config.j2')
-        shutil.copy2(buffers_config_file, mellanox_dir_path)
-
-        argument = '-m ' + self.mellanox2410_t1_minigraph + ' -p ' + port_config_ini_file + ' -t ' + buffers_file + ' > ' + self.output_file
-        self.run_script(argument)
-
-        # cleanup
-        buffers_config_file_new = os.path.join(mellanox_dir_path, 'buffers_config.j2')
-        os.remove(buffers_config_file_new)
-
-        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'buffers-mellanox2410.json')
-        assert filecmp.cmp(sample_output_file, self.output_file)
+        self._test_buffers_render_template('mellanox', 'x86_64-mlnx_msn2410-r0', 'ACS-MSN2410', 'sample-mellanox-2410-t1-minigraph.xml', 'buffers.json.j2', 'buffers-mellanox2410.json')
 
     def test_config_brcm_render_template(self):
         if utils.PYvX_DIR != 'py3':
@@ -381,9 +320,26 @@ class TestJ2Files(TestCase):
             assert utils.cmp(config_sample_output_file, config_test_output)
             os.remove(config_test_output)
 
-    def _test_buffers_render_template(self, vendor, platform, sku, minigraph, buffer_template, expected):
+    def copy_mmu_templates(self, dir_path, revert=False):
+        files_to_copy = ['pg_profile_lookup.ini', 'qos.json.j2', 'buffers_defaults_t0.j2', 'buffers_defaults_t1.j2']
+
+        for file_name in files_to_copy:
+            src_file = os.path.join(dir_path, file_name)
+            dst_file = os.path.join(self.test_dir, file_name)
+
+            if not revert:
+                shutil.copy2(src_file, dst_file)
+            else:
+                shutil.copy2(dst_file, src_file)
+                os.remove(dst_file)
+
+    def _test_buffers_render_template(self, vendor, platform, sku, minigraph, buffer_template, expected, copy_files=False):
         file_exist, dir_exist = self.create_machine_conf(platform, vendor)
         dir_path = os.path.join(self.test_dir, '..', '..', '..', 'device', vendor, platform, sku)
+
+        if copy_files:
+            self.copy_mmu_templates(dir_path, revert=False)
+
         buffers_file = os.path.join(dir_path, buffer_template)
         port_config_ini_file = os.path.join(dir_path, 'port_config.ini')
 
@@ -413,6 +369,8 @@ class TestJ2Files(TestCase):
                 diff = diff + str(self.run_diff(sample_output_file, self.output_file))
 
         os.remove(os.path.join(out_file_dir, expected_files[1]))
+        if copy_files:
+            self.copy_mmu_templates(dir_path, revert=True)
 
         assert match, diff
 
@@ -420,7 +378,7 @@ class TestJ2Files(TestCase):
         if utils.PYvX_DIR != 'py3':
             # Skip on python2 as the change will not be backported to previous version
             return
-          
+
         TEST_DATA = [
             # (vendor, platform, sku, minigraph, buffer_template, sample_output )
             ('arista', 'x86_64-arista_7050cx3_32s', 'Arista-7050CX3-32S-D48C8', 'sample-arista-7050cx3-dualtor-minigraph.xml', 'buffers.json.j2', 'buffer-arista7050cx3-dualtor.json'),
@@ -428,7 +386,11 @@ class TestJ2Files(TestCase):
             ('arista', 'x86_64-arista_7260cx3_64', 'Arista-7260CX3-D108C8', 'sample-arista-7260-dualtor-minigraph.xml', 'buffers.json.j2', 'buffer-arista7260-dualtor.json'),
             ('arista', 'x86_64-arista_7260cx3_64', 'Arista-7260CX3-D108C8', 'sample-arista-7260-dualtor-minigraph-remap-disabled.xml', 'buffers.json.j2', 'buffer-arista7260-dualtor-remap-disabled.json'),
             ('arista', 'x86_64-arista_7260cx3_64', 'Arista-7260CX3-C64', 'sample-arista-7260-t1-minigraph.xml', 'buffers.json.j2', 'buffer-arista7260-t1.json'),
-            ('arista', 'x86_64-arista_7260cx3_64', 'Arista-7260CX3-C64', 'sample-arista-7260-t1-minigraph-remap-disabled.xml', 'buffers.json.j2', 'buffer-arista7260-t1-remap-disabled.json')
+            ('arista', 'x86_64-arista_7260cx3_64', 'Arista-7260CX3-C64', 'sample-arista-7260-t1-minigraph-remap-disabled.xml', 'buffers.json.j2', 'buffer-arista7260-t1-remap-disabled.json'),
+            ('mellanox', 'x86_64-mlnx_msn4600c-r0', 'Mellanox-SN4600C-C64', 'sample-mellanox-4600c-t1-minigraph.xml', 'buffers_dynamic.json.j2', 'buffers-mellanox4600c-t1-dynamic.json'),
+            ('mellanox', 'x86_64-mlnx_msn4600c-r0', 'Mellanox-SN4600C-C64', 'sample-mellanox-4600c-t1-minigraph.xml', 'buffers.json.j2', 'buffers-mellanox4600c-t1.json'),
+            ('mellanox', 'x86_64-mlnx_msn4600c-r0', 'Mellanox-SN4600C-C64', 'sample-mellanox-4600c-t1-minigraph-remap-disabled.xml', 'buffers_dynamic.json.j2', 'buffers-mellanox4600c-t1-dynamic-remap-disabled.json'),
+            ('mellanox', 'x86_64-mlnx_msn4600c-r0', 'Mellanox-SN4600C-C64', 'sample-mellanox-4600c-t1-minigraph-remap-disabled.xml', 'buffers.json.j2', 'buffers-mellanox4600c-t1-remap-disabled.json')
         ]
 
         for test_data in TEST_DATA:
@@ -450,15 +412,21 @@ class TestJ2Files(TestCase):
             '../../../device/arista/x86_64-arista_7260cx3_64/Arista-7260CX3-C64',
             '../../../device/arista/x86_64-arista_7050cx3_32s/Arista-7050CX3-32S-D48C8',
             '../../../device/arista/x86_64-arista_7260cx3_64/Arista-7260CX3-D108C8',
-            '../../../device/arista/x86_64-arista_7260cx3_64/Arista-7260CX3-C64'
-            ]
+            '../../../device/arista/x86_64-arista_7260cx3_64/Arista-7260CX3-C64',
+            '../../../device/mellanox/x86_64-mlnx_msn4600c-r0/Mellanox-SN4600C-C64',
+            '../../../device/mellanox/x86_64-mlnx_msn4600c-r0/Mellanox-SN4600C-C64',
+            '../../../device/arista/x86_64-arista_7050_qx32s/Arista-7050-QX-32S'
+        ]
         sample_outputs = [
             'qos-arista7050cx3-dualtor.json',
             'qos-arista7260-dualtor.json',
             'qos-arista7260-t1.json',
             'qos-arista7050cx3-dualtor-remap-disabled.json',
             'qos-arista7260-dualtor-remap-disabled.json',
-            'qos-arista7260-t1-remap-disabled.json'
+            'qos-arista7260-t1-remap-disabled.json',
+            'qos-mellanox4600c-c64.json',
+            'qos-mellanox4600c-c64-remap-disabled.json',
+            'qos-arista7050-t0-storage-backend.json'
         ]
         sample_minigraph_files = [
             'sample-arista-7050cx3-dualtor-minigraph.xml',
@@ -466,8 +434,12 @@ class TestJ2Files(TestCase):
             'sample-arista-7260-t1-minigraph.xml',
             'sample-arista-7050cx3-dualtor-minigraph-remap-disabled.xml',
             'sample-arista-7260-dualtor-minigraph-remap-disabled.xml',
-            'sample-arista-7260-t1-minigraph-remap-disabled.xml'
+            'sample-arista-7260-t1-minigraph-remap-disabled.xml',
+            'sample-mellanox-4600c-t1-minigraph.xml',
+            'sample-mellanox-4600c-t1-minigraph-remap-disabled.xml',
+            'sample-arista-7050-t0-storage-backend-minigraph.xml'
         ]
+
         for i, path in enumerate(dir_paths):
             device_template_path = os.path.join(self.test_dir, path)
             sample_output = sample_outputs[i]
@@ -578,6 +550,37 @@ class TestJ2Files(TestCase):
         argument = '-j {} -t {} > {}'.format(ntp_interfaces_json, conf_template, self.output_file)
         self.run_script(argument)
         assert utils.cmp(expected, self.output_file), self.run_diff(expected, self.output_file)
+
+    def test_backend_acl_template_render(self):
+        acl_template = os.path.join(
+            self.test_dir, '..', '..', '..', 'files', 'build_templates',
+            'backend_acl.j2'
+        )
+        test_list = {
+            'single_vlan': {
+                'input': 'single_vlan.json',
+                'output': 'acl_single_vlan.json'
+            },
+            'multi_vlan': {
+                'input': 'multi_vlan.json',
+                'output': 'acl_multi_vlan.json'
+            },
+        }
+        for _, v in test_list.items():
+            input_file = os.path.join(
+                self.test_dir, 'data', 'backend_acl', v['input']
+            )
+            argument = " -j {} -t {} > {}".format(
+                input_file, acl_template, self.output_file
+            )
+            sample_output_file = os.path.join(
+                self.test_dir, 'data', 'backend_acl', v['output']
+            )
+            self.run_script(argument)
+            assert utils.cmp(sample_output_file, self.output_file), self.run_diff(sample_output_file, self.output_file)
+
+    def test_buffers_edgezone_aggregator_render_template(self):
+        self._test_buffers_render_template('arista', 'x86_64-arista_7060_cx32s', 'Arista-7060CX-32S-D48C8', 'sample-arista-7060-t0-minigraph.xml', 'buffers.json.j2', 'buffer-arista7060-t0.json')
 
     def tearDown(self):
         os.environ["CFGGEN_UNIT_TESTING"] = ""
