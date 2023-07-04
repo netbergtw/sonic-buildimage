@@ -34,6 +34,7 @@ Table of Contents
          * [FG_NHG_MEMBER](#fg_nhg_member)
          * [FG_NHG_PREFIX](#fg_nhg_prefix)
          * [FABRIC_MONITOR](#fabric-monitor)
+         * [FABRIC_PORT](#fabric-port)
          * [FLEX_COUNTER_TABLE](#flex_counter_table)
          * [Hash](#hash)
          * [IPv6 Link-local] (#ipv6-link-local)
@@ -47,6 +48,7 @@ Table of Contents
          * [Management VRF](#management-vrf)
          * [MAP_PFC_PRIORITY_TO_QUEUE](#map_pfc_priority_to_queue)
          * [MUX_CABLE](#mux_cable)
+         * [MUX_LINKMGR](#mux_linkmgr)
          * [NEIGH](#neigh)
          * [NTP Global Configuration](#ntp-global-configuration)
          * [NTP and SYSLOG servers](#ntp-and-syslog-servers)
@@ -927,7 +929,8 @@ instance is supported in SONiC.
         "bgp_adv_lo_prefix_as_128" : "true",
         "buffer_model": "traditional",
         "yang_config_validation": "disable",
-        "rack_mgmt_map": "dummy_value"
+        "rack_mgmt_map": "dummy_value",
+        "timezome": "Europe/Kiev"
     }
   }
 }
@@ -1061,6 +1064,24 @@ The FG_NHG_PREFIX table provides the FG_NHG_PREFIX for which FG behavior is desi
 
 ```
 
+### FABRIC_PORT
+```
+{
+"FABRIC_PORT": {
+    "Fabric0": {
+        "alias": "Fabric0",
+        "isolateStatus": "False",
+        "lanes": "0"
+    },
+    "Fabric1": {
+        "alias": "Fabric1",
+        "isolateStatus": "False",
+        "lanes": "1"
+    }
+  }
+}
+
+```
 
 ### MPLS_TC_TO_TC_MAP
 ```
@@ -1101,6 +1122,14 @@ The FG_NHG_PREFIX table provides the FG_NHG_PREFIX for which FG behavior is desi
 		"TUNNEL": {
 			"FLEX_COUNTER_STATUS": "enable",
 			"POLL_INTERVAL": "10000"
+		},
+		"WRED_ECN_QUEUE": {
+			"FLEX_COUNTER_STATUS": "enable",
+			"POLL_INTERVAL": "10000"
+		},
+		"WRED_ECN_PORT": {
+			"FLEX_COUNTER_STATUS": "enable",
+			"POLL_INTERVAL": "1000"
 		}
 	}
 }
@@ -1389,6 +1418,25 @@ The **MUX_CABLE** table is used for dualtor interface configuration. The `cable_
             "server_ipv6": "fc02:1000::30/128",
             "soc_ipv4": "192.168.0.3/32",
             "state": "auto"
+        }
+    }
+}
+```
+
+### MUX_LINKMGR
+The **MUX_LINKMGR** table is used for dualtor device configuration.
+```
+{
+    "MUX_LINKMGR": {
+        "LINK_PROBER": {
+            "interval_v4": "100",
+            "interval_v6": "1000",
+            "positive_signal_count": "1",
+            "negative_signal_count": "3",
+            "suspend_timer": "500",
+            "use_well_known_mac": "enabled",
+            "src_mac": "ToRMac",
+            "interval_pck_loss_count_update": "3"
         }
     }
 }
@@ -1776,7 +1824,8 @@ SFLOW
 
 | Field            | Description                                                                             | Mandatory   | Default   | Reference                                 |
 |------------------|-----------------------------------------------------------------------------------------|-------------|-----------|-------------------------------------------|
-| admin_state      | Global sflow admin state                                                                |             | down      |                                           |
+| admin_state      | Global sflow admin state                                                                |             | down      |    
+| sample_direction | Global sflow sample direction                                                           |             | rx        |                                        |
 | polling_interval | The interval within which sFlow data is collected and sent to the configured collectors |             | 20        |                                           |
 | agent_id         | Interface name                                                                          |             |           | PORT:name,PORTCHANNEL:name,MGMT_PORT:name, VLAN:name |
 
@@ -1788,7 +1837,7 @@ key - port
 | port        | Sets sflow session table attributes for either all interfaces or a specific Ethernet interface.                         |             |           | PORT:name   |
 | admin_state | Per port sflow admin state                                                                                              |             | up        |             |
 | sample_rate | Sets the packet sampling rate.  The rate is expressed as an integer N, where the intended sampling rate is 1/N packets. |             |           |             |
-
+| sample_direction| Per port sflow sample direction                                                                                               |             |   rx
 SFLOW_COLLECTOR
 
 key - name

@@ -277,6 +277,11 @@ class TestCfgGenCaseInsensitive(TestCase):
         output = self.run_script(argument)
         self.assertEqual(output.strip(), "{'10.0.10.1': {}, '10.0.10.2': {}}")
 
+    def test_metadata_dns_nameserver(self):
+        argument = ['-m', self.sample_graph, '-p', self.port_config, '-v', "DNS_NAMESERVER"]
+        output = self.run_script(argument)
+        self.assertEqual(output.strip(), "{'1.1.1.1': {}, '8.8.8.8': {}}")
+
     def test_minigraph_vnet(self):
         argument = ['-m', self.sample_graph, '-p', self.port_config, '-v', "VNET"]
         output = self.run_script(argument)
@@ -499,12 +504,12 @@ class TestCfgGenCaseInsensitive(TestCase):
         expected_acl_type_bmcdata = {
             "ACTIONS": "PACKET_ACTION,COUNTER",
             "BIND_POINTS": "PORT",
-            "MATCHES": "SRC_IP,DST_IP,ETHER_TYPE,IP_TYPE,IP_PROTOCOL,IN_PORTS,TCP_FLAGS",
+            "MATCHES": "SRC_IP,DST_IP,ETHER_TYPE,IP_TYPE,IP_PROTOCOL,IN_PORTS,L4_SRC_PORT,L4_DST_PORT,L4_SRC_PORT_RANGE,L4_DST_PORT_RANGE",
         }
         expected_acl_type_bmcdatav6 = {
             "ACTIONS": "PACKET_ACTION,COUNTER",
             "BIND_POINTS": "PORT",
-            "MATCHES": "SRC_IPV6,DST_IPV6,ETHER_TYPE,IP_TYPE,IP_PROTOCOL,IN_PORTS,TCP_FLAGS",
+            "MATCHES": "SRC_IPV6,DST_IPV6,ETHER_TYPE,IP_TYPE,IP_PROTOCOL,IN_PORTS,L4_SRC_PORT,L4_DST_PORT,L4_SRC_PORT_RANGE,L4_DST_PORT_RANGE",
         }
         expected_acl_table_bmc_acl_northbound =  {
             'policy_desc': 'BMC_ACL_NORTHBOUND',
