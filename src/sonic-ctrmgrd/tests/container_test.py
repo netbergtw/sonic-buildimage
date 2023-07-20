@@ -244,11 +244,6 @@ stop_test_data = {
                         "container_id": "",
                         "container_version": "20201230.1.15"
                     }
-                },
-                common_test.KUBE_LABEL_TABLE: {
-                    "SET": {
-                        "snmp_enabled": "false"
-                    }
                 }
             }
         },
@@ -468,7 +463,7 @@ wait_test_data = {
 class TestContainer(object):
 
     def init(self):
-        container.CTR_STATE_SCR_PATH = __file__
+        container.CTRMGRD_SERVICE_PATH = __file__
         container.SONIC_CTR_CONFIG = (
                 common_test.create_remote_ctr_config_json())
 

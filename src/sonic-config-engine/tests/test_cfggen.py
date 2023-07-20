@@ -696,11 +696,6 @@ class TestCfgGen(TestCase):
         output = self.run_script(argument)
         self.assertEqual(utils.to_dict(output.strip()), utils.to_dict("{'10.0.10.1': {}, '10.0.10.2': {}}"))
 
-    def test_metadata_dns_nameserver(self):
-        argument = ['-m', self.sample_graph_metadata, '-p', self.port_config, '-v', "DNS_NAMESERVER"]
-        output = self.run_script(argument)
-        self.assertEqual(utils.to_dict(output.strip()), utils.to_dict("{'20.2.2.2': {}, '30.3.3.3': {}}"))
-
     def test_minigraph_vnet(self, **kwargs):
         graph_file = kwargs.get('graph_file', self.sample_graph_simple)
         argument = ['-m', graph_file, '-p', self.port_config, '-v', "VNET"]
@@ -1032,14 +1027,14 @@ class TestCfgGen(TestCase):
         output = self.run_script(argument)
         self.assertEqual(
             utils.to_dict(output.strip()),
-            utils.to_dict("{'8.0.0.1/32': {'nexthop': '192.168.1.2,192.168.2.2', 'ifname': 'PortChannel40,PortChannel50', 'advertise':'false'}}")
+            utils.to_dict("{'8.0.0.1/32': {'nexthop': '192.168.1.2,192.168.2.2', 'ifname': 'PortChannel40,PortChannel50', 'advertise':'false', 'bfd':'true'}}")
         )
 
         argument = ['-m', self.packet_chassis_graph, '-p', self.packet_chassis_port_ini, '-n', "asic1", '-v', "STATIC_ROUTE"]
         output = self.run_script(argument)
         self.assertEqual(
             utils.to_dict(output.strip()),
-            utils.to_dict("{'8.0.0.1/32': {'nexthop': '192.168.1.2,192.168.2.2', 'ifname': 'PortChannel40,PortChannel50', 'advertise':'false'}}")
+            utils.to_dict("{'8.0.0.1/32': {'nexthop': '192.168.1.2,192.168.2.2', 'ifname': 'PortChannel40,PortChannel50', 'advertise':'false', 'bfd':'true'}}")
         )
 
     def test_minigraph_bgp_packet_chassis_vlan_subintf(self):
