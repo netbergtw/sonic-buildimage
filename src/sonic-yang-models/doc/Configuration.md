@@ -424,7 +424,14 @@ group name and IP ranges in **BGP_PEER_RANGE** table.
         "ip_range": [
             "10.2.0.0/16"
         ]
-    }
+    },
+    "BGPSentinel": {
+        "name": "BGPSentinel",
+        "ip_range": [
+            "10.1.0.0/24"
+        ],
+        "src_address": "10.1.0.32"
+     }
   }
 }
 ```
@@ -1439,6 +1446,9 @@ The **MUX_LINKMGR** table is used for dualtor device configuration.
             "use_well_known_mac": "enabled",
             "src_mac": "ToRMac",
             "interval_pck_loss_count_update": "3"
+        },
+        "MUXLOGGER": {
+            "log_verbosity": "debug"
         }
     }
 }
