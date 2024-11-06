@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2019-2022 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2019-2023 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,9 +46,11 @@ CONFIG_PATH = "/var/run/hw-management/config"
 FAN_DIR = "/var/run/hw-management/thermal/fan{}_dir"
 FAN_DIR_VALUE_EXHAUST = 0
 FAN_DIR_VALUE_INTAKE = 1
+FAN_DIR_VALUE_NOT_APPLICABLE = 2
 FAN_DIR_MAPPING = {
     FAN_DIR_VALUE_EXHAUST: FanBase.FAN_DIRECTION_EXHAUST,
     FAN_DIR_VALUE_INTAKE: FanBase.FAN_DIRECTION_INTAKE,
+    FAN_DIR_VALUE_NOT_APPLICABLE: FanBase.FAN_DIRECTION_NOT_APPLICABLE,
 }
 
 class MlnxFan(FanBase):
@@ -170,7 +172,7 @@ class PsuFan(MlnxFan):
         Retrieves the fan's direction
 
         Returns:
-            A string, either FAN_DIRECTION_INTAKE or FAN_DIRECTION_EXHAUST
+            A string, either FAN_DIRECTION_INTAKE or FAN_DIRECTION_EXHAUST or FAN_DIRECTION_NOT_APPLICABLE
             depending on fan direction
 
         Notes:
@@ -181,6 +183,7 @@ class PsuFan(MlnxFan):
             Air flow from QSFP side to fans side, for example: MSN2700-CS2R
             which means exhaust in community
             According to hw-mgmt:
+                2 stands for N/A, in case fan direction could not be determined
                 1 stands for forward, in other words intake
                 0 stands for reverse, in other words exhaust
         """
@@ -216,7 +219,10 @@ class PsuFan(MlnxFan):
         """
         try:
             # Get PSU fan target speed according to current system cooling level
-            cooling_level = Thermal.get_cooling_level()
+            pwm = utils.read_int_from_file('/run/hw-management/thermal/pwm1', log_func=None)
+            if pwm >= PWM_MAX:
+                pwm = PWM_MAX - 1
+            cooling_level = int(pwm / PWM_MAX * 10)
             return int(self.PSU_FAN_SPEED[cooling_level], 16)
         except Exception:
             return self.get_speed()
@@ -250,6 +256,7 @@ class PsuFan(MlnxFan):
             logger.log_error('Failed to set PSU FAN speed - {}'.format(e))
             return False
 
+
 class Fan(MlnxFan):
     """Platform-specific Fan class"""
     def __init__(self, fan_index, fan_drawer, position):
@@ -271,7 +278,7 @@ class Fan(MlnxFan):
         Retrieves the fan's direction
 
         Returns:
-            A string, either FAN_DIRECTION_INTAKE or FAN_DIRECTION_EXHAUST
+            A string, either FAN_DIRECTION_INTAKE or FAN_DIRECTION_EXHAUST or FAN_DIRECTION_NOT_APPLICABLE
             depending on fan direction
 
         Notes:
@@ -282,6 +289,7 @@ class Fan(MlnxFan):
             Air flow from QSFP side to fans side, for example: MSN2700-CS2R
             which means exhaust in community
             According to hw-mgmt:
+                2 stands for N/A, in case fan direction could not be determined
                 1 stands for forward, in other words intake
                 0 stands for reverse, in other words exhaust
         """

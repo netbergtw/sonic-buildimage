@@ -254,7 +254,7 @@ if [ -f $FIRST_BOOT_FILE ]; then
     fi
 
     # Try to take old configuration saved during installation
-    # and create a flag in /tmp/ to let updategraph service know
+    # and create a flag in /tmp/
     if [ -d /host/old_config ]; then
         mv -f /host/old_config /etc/sonic/
         rm -rf /etc/sonic/old_config/old_config
@@ -275,7 +275,6 @@ if [ -f $FIRST_BOOT_FILE ]; then
         [ -f /host/migration/snmp.yml ] && mv /host/migration/snmp.yml /etc/sonic/old_config/
         [ -f /host/migration/golden_config_db.json ] && mv /host/migration/golden_config_db.json /etc/sonic/old_config/
         touch /tmp/pending_config_migration
-        [ -f /etc/sonic/updategraph.conf ] && sed -i -e "s/enabled=false/enabled=true/g" /etc/sonic/updategraph.conf
     else
         touch /tmp/pending_config_initialization
     fi
@@ -294,7 +293,7 @@ if [ -f $FIRST_BOOT_FILE ]; then
             # Use only the trivial repo and apt to support lazy package dependencies
             mv /etc/apt/sources.list /etc/apt/sources.list.rc-local
             echo "deb [trusted=yes] file:///host/image-$SONIC_VERSION/platform/common /" > /etc/apt/sources.list.d/sonic_debian_extension.list
-            LANG=C DEBIAN_FRONTEND=noninteractive apt-get update
+            LANG=C DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=1 update
             LANG=C DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Path=$PATH:/usr/local/bin -y install /host/image-$SONIC_VERSION/platform/$platform/*.deb
             # Cleanup
             rm -f /etc/apt/sources.list.d/sonic_debian_extension.list

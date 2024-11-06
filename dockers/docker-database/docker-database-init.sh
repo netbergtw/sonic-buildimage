@@ -17,6 +17,32 @@ then
     host_ip=127.0.0.1
 fi
 
+redis_port=6379
+
+if [[ $DATABASE_TYPE == "dpudb" ]]; then
+    host_ip="169.254.200.254"
+    if ! ip -4 -o addr | awk '{print $4}' | grep $host_ip; then
+        host_ip=127.0.0.1
+    fi
+    DPU_ID=`echo $DEV | tr -dc '0-9'`
+    redis_port=`expr 6381 + $DPU_ID`
+fi
+
+if [[ $IS_DPU_DEVICE == "true" ]]
+then
+    midplane_ip=$( ip -4 -o addr show eth0-midplane | awk '{print $4}' | cut -d'/' -f1  )
+    if [[ $midplane_ip != "" ]]
+    then
+        export DATABASE_TYPE="dpudb"
+        export REMOTE_DB_IP="169.254.200.254"
+        # Determine the DB PORT from midplane IP
+        IFS=. read -r a b c d <<< $midplane_ip
+        export REMOTE_DB_PORT=$((6380 + $d))
+    fi
+fi
+
+export BMP_DB_PORT=6400
+
 REDIS_DIR=/var/run/redis$NAMESPACE_ID
 mkdir -p $REDIS_DIR/sonic-db
 mkdir -p /etc/supervisor/conf.d/
@@ -24,7 +50,7 @@ mkdir -p /etc/supervisor/conf.d/
 if [ -f /etc/sonic/database_config$NAMESPACE_ID.json ]; then
     cp /etc/sonic/database_config$NAMESPACE_ID.json $REDIS_DIR/sonic-db/database_config.json
 else
-    HOST_IP=$host_ip j2 /usr/share/sonic/templates/database_config.json.j2 > $REDIS_DIR/sonic-db/database_config.json
+    HOST_IP=$host_ip REDIS_PORT=$redis_port DATABASE_TYPE=$DATABASE_TYPE BMP_DB_PORT=$BMP_DB_PORT j2 /usr/share/sonic/templates/database_config.json.j2 > $REDIS_DIR/sonic-db/database_config.json
 fi
 
 # on VoQ system, we only publish redis_chassis instance and CHASSIS_APP_DB when
@@ -49,17 +75,22 @@ cp $db_cfg_file $db_cfg_file_tmp
 if [[ $DATABASE_TYPE == "chassisdb" ]]; then
     # Docker init for database-chassis
     echo "Init docker-database-chassis..."
+    VAR_LIB_REDIS_CHASSIS_DIR="/var/lib/redis_chassis"
+    mkdir -p $VAR_LIB_REDIS_CHASSIS_DIR   
     update_chassisdb_config -j $db_cfg_file_tmp -k -p $chassis_db_port
     # generate all redis server supervisord configuration file
-    sonic-cfggen -j $db_cfg_file_tmp -t /usr/share/sonic/templates/supervisord.conf.j2 > /etc/supervisor/conf.d/supervisord.conf
-    sonic-cfggen -j $db_cfg_file_tmp -t /usr/share/sonic/templates/critical_processes.j2 > /etc/supervisor/critical_processes
+    sonic-cfggen -j $db_cfg_file_tmp \
+    -t /usr/share/sonic/templates/supervisord.conf.j2,/etc/supervisor/conf.d/supervisord.conf \
+    -t /usr/share/sonic/templates/critical_processes.j2,/etc/supervisor/critical_processes
     rm $db_cfg_file_tmp
+    chown -R redis:redis $VAR_LIB_REDIS_CHASSIS_DIR
+    chown -R redis:redis $REDIS_DIR
     exec /usr/local/bin/supervisord
     exit 0
 fi
 
-# copy/generate the database_global.json file if this is global database service in multi asic platform.
-if [[ $NAMESPACE_ID == "" ]] && [[ $NAMESPACE_COUNT -gt 1 ]]
+# copy/generate the database_global.json file if this is global database service in multi asic/smart switch platform.
+if [[ $NAMESPACE_ID == "" && $DATABASE_TYPE == "" && ( $NAMESPACE_COUNT -gt 1 || $NUM_DPU -gt 1) ]]
 then
     if [ -f /etc/sonic/database_global.json ]; then
         cp /etc/sonic/database_global.json $REDIS_DIR/sonic-db/database_global.json
@@ -69,8 +100,9 @@ then
 fi
 # delete chassisdb config to generate supervisord config
 update_chassisdb_config -j $db_cfg_file_tmp -d
-sonic-cfggen -j $db_cfg_file_tmp -t /usr/share/sonic/templates/supervisord.conf.j2 > /etc/supervisor/conf.d/supervisord.conf
-sonic-cfggen -j $db_cfg_file_tmp -t /usr/share/sonic/templates/critical_processes.j2 > /etc/supervisor/critical_processes
+sonic-cfggen -j $db_cfg_file_tmp \
+-t /usr/share/sonic/templates/supervisord.conf.j2,/etc/supervisor/conf.d/supervisord.conf \
+-t /usr/share/sonic/templates/critical_processes.j2,/etc/supervisor/critical_processes
 
 if [[ "$start_chassis_db" != "1" ]] && [[ -z "$chassis_db_address" ]]; then
      cp $db_cfg_file_tmp $db_cfg_file
@@ -98,5 +130,9 @@ done
 TZ=$(cat /etc/timezone)
 rm -rf /etc/localtime
 ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
+
+chown -R redis:redis $REDIS_DIR
+REDIS_BMP_DIR="/var/lib/redis_bmp"
+chown -R redis:redis $REDIS_BMP_DIR
 
 exec /usr/local/bin/supervisord

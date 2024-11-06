@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 EXIT_TELEMETRY_VARS_FILE_NOT_FOUND=1
-INCORRECT_TELEMETRY_VALUE = 2
+INCORRECT_TELEMETRY_VALUE=2
 TELEMETRY_VARS_FILE=/usr/share/sonic/templates/telemetry_vars.j2
 
 if [ ! -f "$TELEMETRY_VARS_FILE" ]; then
@@ -19,6 +19,7 @@ CERTS=$(echo $TELEMETRY_VARS | jq -r '.certs')
 
 TELEMETRY_ARGS=" -logtostderr"
 export CVL_SCHEMA_PATH=/usr/sbin/schema
+export GOTRACEBACK=crash
 
 if [ -n "$CERTS" ]; then
     SERVER_CRT=$(echo $CERTS | jq -r '.server_crt')
@@ -33,6 +34,9 @@ if [ -n "$CERTS" ]; then
     if [ ! -z $CA_CRT ]; then
         TELEMETRY_ARGS+=" --ca_crt $CA_CRT"
     fi
+
+    # Reuse GNMI_CLIENT_CERT for telemetry service
+    TELEMETRY_ARGS+=" --config_table_name GNMI_CLIENT_CERT"
 elif [ -n "$X509" ]; then
     SERVER_CRT=$(echo $X509 | jq -r '.server_crt')
     SERVER_KEY=$(echo $X509 | jq -r '.server_key')
@@ -70,12 +74,20 @@ else
     TELEMETRY_ARGS+=" -v=2"
 fi
 
+# gNMI save-on-set behavior is disabled by default.
+# Save-on-set can be turned on by setting the "TELEMETRY|gnmi|save_on_set"
+# to "true".
+readonly SAVE_ON_SET=$(echo $GNMI | jq -r '.save_on_set // empty')
+if [ ! -z "$SAVE_ON_SET" ]; then
+    TELEMETRY_ARGS+=" --with-save-on-set=$SAVE_ON_SET"
+fi
+
 # Server will handle threshold connections consecutively
 THRESHOLD_CONNECTIONS=$(echo $GNMI | jq -r '.threshold')
 if [[ $THRESHOLD_CONNECTIONS =~ ^[0-9]+$ ]]; then
     TELEMETRY_ARGS+=" --threshold $THRESHOLD_CONNECTIONS"
 else
-    if [[ $THRESHOLD_CONNECTIONS == "null" ]]; then
+    if [ -z "$GNMI" ] || [[ $THRESHOLD_CONNECTIONS == "null" ]]; then
         TELEMETRY_ARGS+=" --threshold 100"
     else
         echo "Incorrect threshold value, expecting positive integers" >&2
@@ -88,13 +100,13 @@ IDLE_CONN_DURATION=$(echo $GNMI | jq -r '.idle_conn_duration')
 if [[ $IDLE_CONN_DURATION =~ ^[0-9]+$ ]]; then
     TELEMETRY_ARGS+=" --idle_conn_duration $IDLE_CONN_DURATION"
 else
-    if [[ $IDLE_CONN_DURATION == "null" ]]; then
+    if [ -z "$GNMI" ] || [[ $IDLE_CONN_DURATION == "null" ]]; then
         TELEMETRY_ARGS+=" --idle_conn_duration 5"
     else
         echo "Incorrect idle_conn_duration value, expecting positive integers" >&2
         exit $INCORRECT_TELEMETRY_VALUE
     fi
 fi
-
+TELEMETRY_ARGS+=" -gnmi_native_write=false"
 
 exec /usr/sbin/telemetry ${TELEMETRY_ARGS}

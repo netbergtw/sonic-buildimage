@@ -13,6 +13,7 @@ WEB_VERSION_FILE=$VERSION_PATH/versions-web
 BUILD_WEB_VERSION_FILE=$BUILD_VERSION_PATH/versions-web
 REPR_MIRROR_URL_PATTERN='http:\/\/packages.trafficmanager.net\/'
 DPKG_INSTALLTION_LOCK_FILE=/tmp/.dpkg_installation.lock
+GET_RETRY_COUNT=5
 
 . $BUILDINFO_PATH/config/buildinfo.config
 
@@ -121,6 +122,12 @@ set_reproducible_mirrors()
         # Remove the character # in front of the line, if not match the URL pattern condition
         expression2="/^#*deb.*$REPR_MIRROR_URL_PATTERN/! s/^#\s*(#*deb)/\1/"
         expression3="/#SET_REPR_MIRRORS/d"
+    fi
+    if [[ "$1" != "-d" ]] && [ -f /etc/apt/sources.list.d/debian.sources ]; then
+        mv /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list.d/debian.sources.back
+    fi
+    if [[ "$1" == "-d" ]] && [ -f /etc/apt/sources.list.d/debian.sources.back ]; then
+        mv /etc/apt/sources.list.d/debian.sources.back /etc/apt/sources.list.d/debian.sources
     fi
 
     local mirrors="/etc/apt/sources.list $(find /etc/apt/sources.list.d/ -type f)"
@@ -242,10 +249,17 @@ download_packages()
         return $result
     fi
 
-    $REAL_COMMAND "${parameters[@]}"
-    result=$?
+    # Retry if something super-weird has happened
+    for ((i = 1; i <= GET_RETRY_COUNT; i++)); do
+        $REAL_COMMAND "${parameters[@]}"
+        result=$?
+        if [ $result -eq 0 ]; then
+            break
+        fi
+        log_err "Try $i: $REAL_COMMAND failed to get: ${parameters[@]}. Retry.."
+    done
 
-    #Return if there is any error
+    # Return if there is any error
     if [ ${result} -ne 0 ]; then
         exit ${result}
     fi
@@ -280,7 +294,7 @@ download_packages()
 
 run_pip_command()
 {
-    declare -a parameters=("$@")
+    declare -a parameters=("--default-timeout" "$PIP_HTTP_TIMEOUT" "$@")
     PIP_CACHE_PATH=${PKG_CACHE_PATH}/pip
     PKG_CACHE_OPTION="--cache-dir=${PIP_CACHE_PATH}"
 
@@ -371,6 +385,39 @@ check_apt_install()
         fi
 
         break
+    done
+}
+
+# Check if we need to use apt_installation_lock for this dpkg command
+check_dpkg_need_lock()
+{
+    for para in "$@"
+    do
+        if [ "$para" == "-i" ] || [ "$para" == "--install" ]; then
+            echo y
+            break
+        fi
+
+        if [ "$para" == "-P"  ] || [ "$para" == "--purge" ]; then
+            echo y
+            break
+        fi
+
+        if [ "$para" == "-r"  ] || [ "$para" == "--remove" ]; then
+            echo y
+            break
+        fi
+
+        if [ "$para" == "--unpack"  ] || [ "$para" == "--configure" ]; then
+            echo y
+            break
+        fi
+
+        if [ "$para" == "--update-avail"  ] || [ "$para" == "--merge-avail" ] || [ "$para" == "--clear-avail" ]; then
+            echo y
+            break
+        fi
+
     done
 }
 

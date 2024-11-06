@@ -159,7 +159,7 @@ static int xcvr_probe(struct i2c_client *client,
         goto exit_free;
     }
 
-    data->xdev = hwmon_device_register_with_info(&client->dev, client->name, NULL, NULL, NULL);
+    data->xdev = hwmon_device_register_with_groups(&client->dev, client->name, NULL, NULL);
     if (IS_ERR(data->xdev)) {
         status = PTR_ERR(data->xdev);
         goto exit_remove;
@@ -189,7 +189,7 @@ exit:
     return status;
 }
 
-static int xcvr_remove(struct i2c_client *client)
+static void xcvr_remove(struct i2c_client *client)
 {
     int ret = 0;
     struct xcvr_data *data = i2c_get_clientdata(client);
@@ -222,8 +222,6 @@ static int xcvr_remove(struct i2c_client *client)
         if (ret!=0)
             printk(KERN_ERR "FAN post_remove function failed\n");
     }
-
-    return 0;
 }
 
 enum xcvr_intf 

@@ -16,6 +16,7 @@ parameters:
 - name: dist
   type: string
   values:
+  - bookworm
   - bullseye
   - buster
   - stretch
@@ -28,9 +29,9 @@ parameters:
   default: sonicdev
 - name: pool
   type: string
-  default: sonicbld
+  default: sonicbld-1es
   values:
-  - sonicbld
+  - sonicbld-1es
   - sonicbld-arm64
   - sonicbld-armhf
 

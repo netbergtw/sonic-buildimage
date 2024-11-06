@@ -24,13 +24,15 @@ config_db = ConfigDBConnector()
 
 
 def get_dhcp_helper_address(ctx, vlan):
-    cfg, _ = ctx
+    cfg, db = ctx
     vlan_dhcp_helper_data, _, _ = cfg
     vlan_config = vlan_dhcp_helper_data.get(vlan)
     if not vlan_config:
         return ""
 
-    dhcp_helpers = vlan_config.get('dhcp_servers', [])
+    feature_data = db.cfgdb.get_table("FEATURE")
+    dhcp_server_enabled = is_dhcp_server_enabled(feature_data)
+    dhcp_helpers = ["N/A"] if dhcp_server_enabled else vlan_config.get('dhcp_servers', [])
 
     return '\n'.join(natsorted(dhcp_helpers))
 
@@ -43,13 +45,13 @@ class DHCPv6_Counter(object):
         self.db = SonicV2Connector(use_unix_socket_path=False)
         self.db.connect(self.db.STATE_DB)
         self.table_name = DHCPv6_COUNTER_TABLE + self.db.get_db_separator(self.db.STATE_DB)
+        self.table_prefix_len = len(self.table_name)
 
     def get_interface(self):
         """ Get all names of all interfaces in DHCPv6_COUNTER_TABLE """
         vlans = []
-        for key in self.db.keys(self.db.STATE_DB):
-            if DHCPv6_COUNTER_TABLE in key:
-                vlans.append(key[21:])
+        for key in self.db.keys(self.db.STATE_DB, self.table_name + "*"):
+            vlans.append(key[self.table_prefix_len:])
         return vlans
 
     def get_dhcp6relay_msg_count(self, interface, msg):
@@ -110,7 +112,7 @@ def dhcp_relay_helper():
     pass
 
 
-def get_dhcp_relay_data_with_header(table_data, entry_name):
+def get_dhcp_relay_data_with_header(table_data, entry_name, dhcp_server_enabled=False):
     vlan_relay = {}
     vlans = table_data.keys()
     for vlan in vlans:
@@ -120,13 +122,23 @@ def get_dhcp_relay_data_with_header(table_data, entry_name):
             continue
 
         vlan_relay[vlan] = []
-        for address in dhcp_relay_data:
-            vlan_relay[vlan].append(address)
+        if dhcp_server_enabled:
+            vlan_relay[vlan].append("N/A")
+        else:
+            for address in dhcp_relay_data:
+                vlan_relay[vlan].append(address)
 
     dhcp_relay_vlan_keys = vlan_relay.keys()
     relay_address_list = ["\n".join(vlan_relay[key]) for key in dhcp_relay_vlan_keys]
     data = {"Interface": dhcp_relay_vlan_keys, "DHCP Relay Address": relay_address_list}
     return tabulate(data, tablefmt='grid', stralign='right', headers='keys') + '\n'
+
+
+def is_dhcp_server_enabled(feature_tbl):
+    if feature_tbl is not None and "dhcp_server" in feature_tbl and "state" in feature_tbl["dhcp_server"] and \
+       feature_tbl["dhcp_server"]["state"] == "enabled":
+        return True
+    return False
 
 
 def get_dhcp_relay(table_name, entry_name, with_header):
@@ -138,8 +150,13 @@ def get_dhcp_relay(table_name, entry_name, with_header):
     if table_data is None:
         return
 
+    dhcp_server_enabled = False
+    if table_name == VLAN:
+        feature_tbl = config_db.get_table("FEATURE")
+        dhcp_server_enabled = is_dhcp_server_enabled(feature_tbl)
+
     if with_header:
-        output = get_dhcp_relay_data_with_header(table_data, entry_name)
+        output = get_dhcp_relay_data_with_header(table_data, entry_name, dhcp_server_enabled)
         print(output)
     else:
         vlans = config_db.get_keys(table_name)

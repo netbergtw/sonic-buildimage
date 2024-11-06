@@ -243,7 +243,7 @@ static int psu_probe(struct i2c_client *client,
         goto exit_free;
     }
 
-	data->hwmon_dev = hwmon_device_register_with_info(&client->dev, client->name, NULL, NULL, NULL);
+	data->hwmon_dev = hwmon_device_register_with_groups(&client->dev, client->name, NULL, NULL);
 	if (IS_ERR(data->hwmon_dev)) {
 		status = PTR_ERR(data->hwmon_dev);
 		goto exit_remove;
@@ -279,7 +279,7 @@ exit:
     return status;
 }
 
-static int psu_remove(struct i2c_client *client)
+static void psu_remove(struct i2c_client *client)
 {
 	int i=0, ret = 0;
     struct psu_data *data = i2c_get_clientdata(client);
@@ -319,8 +319,6 @@ static int psu_remove(struct i2c_client *client)
         if (ret!=0)
             printk(KERN_ERR "FAN post_remove function failed\n");
     }
-
-    return ret;
 }
 
 enum psu_intf

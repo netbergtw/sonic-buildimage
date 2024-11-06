@@ -23,7 +23,12 @@ function startplatform() {
 
         debug "Starting Firmware update procedure"
         /usr/bin/mst start --with_i2cdev
-        /usr/bin/mlnx-fw-upgrade.sh
+
+        /usr/bin/mlnx-fw-upgrade.sh -c -v
+        if [[ "$?" -ne "${EXIT_SUCCESS}" ]]; then
+            debug "Failed to upgrade fw. " "$?" "Restart syncd"
+            exit 1
+        fi
         /etc/init.d/sxdkernel restart
         debug "Firmware update procedure ended"
     fi
@@ -35,7 +40,7 @@ function startplatform() {
                 platform=$aboot_platform
             elif [ -n "$onie_platform" ]; then
                 platform=$onie_platform
-            else 
+            else
                 platform="unknown"
             fi
             if [[ x"$platform" == x"x86_64-arista_720dt_48s" ]]; then
@@ -64,34 +69,28 @@ function startplatform() {
             /etc/init.d/xpnet.sh start
         fi
     fi
+
+    if [[ x"$sonic_asic_platform" == x"nvidia-bluefield" ]]; then
+        /usr/bin/bfnet.sh start
+        if [[ $? != "0" ]]; then
+            debug "Failed to start Nvidia Bluefield"
+            exit 1
+        fi
+    fi
 }
 
 function waitplatform() {
 
     BOOT_TYPE=`getBootType`
     if [[ x"$sonic_asic_platform" == x"mellanox" ]]; then
-        if [[ x"$BOOT_TYPE" = @(x"fast"|x"warm"|x"fastfast") ]]; then
-            PMON_TIMER_STATUS=$(systemctl is-active pmon.timer)
-            if [[ x"$PMON_TIMER_STATUS" = x"inactive" ]]; then
-                systemctl start pmon.timer
-            else
-                debug "PMON service is delayed by a timer for better fast/warm boot performance"
-            fi
+        PLATFORM=`$SONIC_DB_CLI CONFIG_DB hget 'DEVICE_METADATA|localhost' platform`
+        PMON_IMMEDIATE_START="/usr/share/sonic/device/$PLATFORM/pmon_immediate_start"
+        if [[ x"$BOOT_TYPE" = @(x"fast"|x"warm"|x"fastfast") ]] && [[ ! -f $PMON_IMMEDIATE_START ]]; then
+            debug "PMON service is delayed by for better fast/warm boot performance"
         else
             debug "Starting pmon service..."
             /bin/systemctl start pmon
             debug "Started pmon service"
-        fi
-    fi
-    if [[ x"$BOOT_TYPE" = @(x"fast"|x"warm"|x"fastfast") ]]; then
-        debug "LLDP service is delayed by a timer for better fast/warm boot performance"
-    else
-        lldp_state=$(systemctl is-enabled lldp.timer)
-        if [[ $lldp_state == "enabled" ]]
-        then
-            debug "Starting lldp service..."
-            /bin/systemctl start lldp
-            debug "Started lldp service"
         fi
     fi
 }
@@ -144,6 +143,8 @@ function stopplatform2() {
         elif [ x$sonic_asic_platform == x'cavium' ]; then
             /etc/init.d/xpnet.sh stop
             /etc/init.d/xpnet.sh start
+        elif [ x"$sonic_asic_platform" == x"nvidia-bluefield" ]; then
+            /usr/bin/bfnet.sh stop
         fi
     fi
 }

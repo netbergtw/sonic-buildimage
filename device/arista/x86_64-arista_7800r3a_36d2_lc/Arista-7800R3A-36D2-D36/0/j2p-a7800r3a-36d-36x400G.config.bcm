@@ -2,6 +2,7 @@ soc_family=BCM8885X
 system_ref_core_clock_khz=1600000
 
 dpp_db_path=/usr/share/bcm/db
+programmability_ucode_relative_path.BCM8885X=pemla/ucode/standard_1/jer2pemla/u_code_db2pem.txt
 
 ####################################################
 ##Reference applications related properties - Start
@@ -1051,3 +1052,5 @@ appl_param_nof_ports_per_modid=64
 xflow_macsec_secure_chan_to_num_secure_assoc_encrypt=2
 xflow_macsec_secure_chan_to_num_secure_assoc_decrypt=4
 sai_pfc_dlr_init_capability=0
+sai_default_cpu_tx_tc=7
+sai_disable_srcmacqedstmac_ctrl=1

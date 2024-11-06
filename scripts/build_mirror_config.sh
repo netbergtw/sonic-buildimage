@@ -5,20 +5,28 @@ CONFIG_PATH=$1
 export ARCHITECTURE=$2
 export DISTRIBUTION=$3
 
+# Handling default
+[[ -z $APT_RETRIES_COUNT ]] && APT_RETRIES_COUNT=20
+export APT_RETRIES_COUNT
+
 DEFAULT_MIRROR_URL_PREFIX=http://packages.trafficmanager.net
 MIRROR_VERSION_FILE=
 [[ "$SONIC_VERSION_CONTROL_COMPONENTS" == *deb* || $SONIC_VERSION_CONTROL_COMPONENTS == *all* ]] && MIRROR_VERSION_FILE=files/build/versions/default/versions-mirror
 [ -f target/versions/default/versions-mirror ] && MIRROR_VERSION_FILE=target/versions/default/versions-mirror
 
 # The default mirror urls
-DEFAULT_MIRROR_URLS=http://debian-archive.trafficmanager.net/debian/,http://packages.trafficmanager.net/debian/debian/
-DEFAULT_MIRROR_SECURITY_URLS=http://debian-archive.trafficmanager.net/debian-security/,http://packages.trafficmanager.net/debian/debian-security/
+DEFAULT_MIRROR_URLS=http://debian-archive.trafficmanager.net/debian/
+DEFAULT_MIRROR_SECURITY_URLS=http://debian-archive.trafficmanager.net/debian-security/
 
 
 # The debian-archive.trafficmanager.net does not support armhf, use debian.org instead
 if [ "$ARCHITECTURE" == "armhf" ]; then
-    DEFAULT_MIRROR_URLS=http://deb.debian.org/debian/,http://packages.trafficmanager.net/debian/debian/
-    DEFAULT_MIRROR_SECURITY_URLS=http://deb.debian.org/debian-security/,http://packages.trafficmanager.net/debian/debian-security/
+    DEFAULT_MIRROR_URLS=http://deb.debian.org/debian/
+    DEFAULT_MIRROR_SECURITY_URLS=http://deb.debian.org/debian-security/
+fi
+
+if [ "$DISTRIBUTION" == "buster" ]; then
+    DEFAULT_MIRROR_URLS=http://archive.debian.org/debian/
 fi
 
 if [ "$MIRROR_SNAPSHOT" == y ]; then
@@ -40,6 +48,7 @@ if [ "$MIRROR_SNAPSHOT" == y ]; then
     fi
 fi
 
+# Handle sources list
 [ -z "$MIRROR_URLS" ] && MIRROR_URLS=$DEFAULT_MIRROR_URLS
 [ -z "$MIRROR_SECURITY_URLS" ] && MIRROR_SECURITY_URLS=$DEFAULT_MIRROR_SECURITY_URLS
 
@@ -53,3 +62,8 @@ if [ "$MIRROR_SNAPSHOT" == y ]; then
     # Set the snapshot mirror, and add the SET_REPR_MIRRORS flag
     sed -i -e "/^#*deb.*packages.trafficmanager.net/! s/^#*deb/#&/" -e "\$a#SET_REPR_MIRRORS" $CONFIG_PATH/sources.list.$ARCHITECTURE
 fi
+
+# Handle apt retry count config
+APT_RETRIES_COUNT_FILENAME=apt-retries-count
+TEMPLATE=files/apt/$APT_RETRIES_COUNT_FILENAME.j2
+j2 $TEMPLATE > $CONFIG_PATH/$APT_RETRIES_COUNT_FILENAME

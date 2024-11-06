@@ -104,12 +104,10 @@ class TestCfgGen(object):
         assert(output == \
             {'PortChannel1001': {'admin_status': 'up',
                       'lacp_key': 'auto',
-                      'members': ['Ethernet0', 'Ethernet4'],
                       'min_links': '1',
                       'mtu': '9100'},
             'PortChannel1002': {'admin_status': 'up',
                       'lacp_key': 'auto',
-                      'members': ['Ethernet16', 'Ethernet20'],
                       'min_links': '1',
                       'mtu': '9100'}})
 
@@ -194,7 +192,8 @@ class TestCfgGen(object):
             "EVERFLOW|Rule2": {
                 "DST_IP": "192.169.10.1/32",
                 "SRC_IP": "10.10.1.1/16",
-                "IP_TYPE": "IPV4"
+                "IP_TYPE": "IPV4",
+                "PRIORITY": "101"
             }
         })
 
@@ -273,7 +272,9 @@ class TestCfgGen(object):
                 "monErrThreshCrcCells": "1",
                 "monErrThreshRxCells": "61035156",
                 "monPollThreshIsolation": "1",
-                "monPollThreshRecovery": "8"
+                "monPollThreshRecovery": "8",
+                "monCapacityThreshWarn": "10",
+                "monState": "enable"
             }
         })
 
@@ -284,6 +285,7 @@ class TestCfgGen(object):
             "Fabric0": {
                 "alias": "Fabric0",
                 "isolateStatus": "False",
-                "lanes": "0"
+                "lanes": "0",
+                "forceUnisolateStatus": "0"
             }
         })

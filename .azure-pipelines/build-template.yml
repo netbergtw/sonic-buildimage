@@ -35,9 +35,9 @@ parameters:
 - name: pool
   type: string
   values:
-  - sonicbld
+  - sonicbld-1es
   - sonicbld_8c
-  default: sonicbld
+  default: sonicbld-1es
 
 - name: dbg_image
   type: boolean
@@ -100,9 +100,6 @@ jobs:
         fi
         if [ ${{ parameters.swi_image }} == true ]; then
           make USERNAME=admin $CACHE_OPTIONS SONIC_BUILD_JOBS=$(nproc) ENABLE_IMAGE_SIGNATURE=y target/sonic-aboot-${{ parameters.platform }}.swi
-        fi
-        if [ ${{ parameters.raw_image }} == true ]; then
-          make USERNAME=admin $CACHE_OPTIONS SONIC_BUILD_JOBS=$(nproc) target/sonic-${{ parameters.platform }}.raw
         fi
         if [ ${{ parameters.sync_rpc_image }} == true ]; then
           make USERNAME=admin $CACHE_OPTIONS SONIC_BUILD_JOBS=$(nproc) ENABLE_SYNCD_RPC=y target/docker-syncd-${{ parameters.platform_short }}-rpc.gz

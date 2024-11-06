@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2023 NVIDIA CORPORATION & AFFILIATES.
+# Copyright (c) 2023-2024 NVIDIA CORPORATION & AFFILIATES.
 # Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,9 @@
 # limitations under the License.
 #
 
-import os
-import sys
-import shutil
-import argparse
-import copy
-import difflib
+from hwmgmt_helper import *
 
-from helper import *
-
-COMMIT_TITLE = "Intgerate HW-MGMT {} Changes"
+COMMIT_TITLE = "Integrate HW-MGMT {} Changes"
 
 PATCH_TABLE_LOC = "platform/mellanox/hw-management/hw-mgmt/recipes-kernel/linux/"
 PATCHWORK_LOC = "linux-{}/patchwork"
@@ -127,8 +120,6 @@ class Data:
     old_non_up = list()
     # New series file written by hw_mgmt integration script
     new_series = list()
-    # List of new opts written by hw_mgmt integration script
-    updated_kcfg = list(tuple())
     # index of the mlnx_hw_mgmt patches start marker in old_series
     i_mlnx_start = -1 
     # index of the mlnx_hw_mgmt patches end marker in old_series
@@ -137,14 +128,9 @@ class Data:
     up_slk_series = list()
     # SLK series file content updated with non-upstream patches, used to generate diff
     agg_slk_series = list()
-    # Diff to be written into the series.patch file
-    agg_slk_series_diff = list()
-    # current kcfg opts
-    current_kcfg = list(tuple())
-    # current raw kconfig exclude data
-    kcfg_exclude = list()
     # kernel version
     k_ver = ""
+
 
 class HwMgmtAction(Action):
 
@@ -162,24 +148,27 @@ class HwMgmtAction(Action):
 
         return action
 
+    def return_false(self, str_):
+        print(str_)
+        return False
+
     def check(self):
-        if not self.args.config_inclusion:
-            print("-> ERR: config_inclusion is missing")
-            return False
-
+        if not self.args.kernel_version:
+            return self.return_false("-> ERR: Kernel Version is missing")
         if not self.args.build_root:
-            print("-> ERR: build_root is missing")
-            return False
-        
-        if not os.path.isfile(self.args.config_inclusion):
-            print("-> ERR: config_inclusion {} doesn't exist".format(self.args.config_inclusion))
-            return False
-        
+            return self.return_false("-> ERR: build_root is missing")
         if not os.path.exists(self.args.build_root):
-            print("-> ERR: Build Root {} doesn't exist".format(self.args.build_root))
-            return False
-
+            return self.return_false("-> ERR: Build Root {} doesn't exist".format(self.args.build_root))
+        if not os.path.isfile(self.args.config_base_amd):
+            return self.return_false("-> ERR: config_base {} doesn't exist".format(self.args.config_base_amd))
+        if not os.path.isfile(self.args.config_base_arm):
+            return self.return_false("-> ERR: config_base_arm {} doesn't exist".format(self.args.config_base_arm))
+        if not os.path.isfile(self.args.config_inc_amd):
+            return self.return_false("-> ERR: config_inclusion {} doesn't exist".format(self.args.config_inc_amd))
+        if not os.path.isfile(self.args.config_inc_arm):
+            return self.return_false("-> ERR: config_inclusion {} doesn't exist".format(self.args.config_inc_arm))
         return True
+
 
 class PreProcess(HwMgmtAction):
     def __init__(self, args):
@@ -189,36 +178,28 @@ class PreProcess(HwMgmtAction):
         return super(PreProcess, self).check()
 
     def perform(self):
-        """ Move MLNX Kconfig to the loc pointed by config_inclusion """
-        kcfg_sec = FileHandler.read_kconfig_inclusion(os.path.join(self.args.build_root, SLK_KCONFIG))
-        writable_opts = KCFG.get_writable_opts(KCFG.parse_opts_strs(kcfg_sec))
-        FileHandler.write_lines(self.args.config_inclusion, writable_opts)
-        print("-> OPTS written to temp config_inclusion file: \n{}".format(FileHandler.read_strip(self.args.config_inclusion, True)))
+        """ Move Base Kconfig to the loc pointed by config_inclusion """
+        shutil.copy2(self.args.config_base_amd, self.args.config_inc_amd)
+        shutil.copy2(self.args.config_base_arm, self.args.config_inc_arm)
+        print("-> Kconfig amd64/arm64 copied to the relevant directory")
     
+
 class PostProcess(HwMgmtAction):
     def __init__(self, args):
         super().__init__(args)
+        self.kcfg_handler = KConfigTask(self.args)
     
     def check(self):
         if not super(PostProcess, self).check():
             return False
-
         if not (self.args.patches and os.path.exists(self.args.patches)):
-            print("-> ERR: upstream patch directory is missing ")
-            return False
-
+            return self.return_false("-> ERR: upstream patch directory is missing ")
         if not (self.args.non_up_patches and os.path.exists(self.args.non_up_patches)):
-            print("-> ERR: non upstream patch directory is missing")
-            return False
-
+            return self.return_false("-> ERR: non upstream patch directory is missing")
         if not (self.args.series and os.path.isfile(self.args.series)):
-            print("-> ERR: series file doesn't exist {}".format(self.args.series))
-            return False
-
+            return self.return_false("-> ERR: series file doesn't exist {}".format(self.args.series))
         if not (self.args.current_non_up_patches and os.path.exists(self.args.current_non_up_patches)):
-            print("-> ERR: current non_up_patches doesn't exist {}".format(self.args.current_non_up_patches))
-            return False
-
+            return self.return_false("-> ERR: current non_up_patches doesn't exist {}".format(self.args.current_non_up_patches))
         return True
 
     def read_data(self):
@@ -226,19 +207,6 @@ class PostProcess(HwMgmtAction):
         Data.new_series = FileHandler.read_strip_minimal(self.args.series)
         Data.old_series = FileHandler.read_raw(os.path.join(self.args.build_root, SLK_SERIES))
         Data.old_non_up = FileHandler.read_strip_minimal(self.args.current_non_up_patches)
-
-        # Read the new kcfg
-        new_cfg = FileHandler.read_kconfig_inclusion(self.args.config_inclusion, None)
-        Data.updated_kcfg = KCFG.parse_opts_strs(new_cfg)
-
-        # entire current config, [common] + [amd64]
-        all_kcfg = FileHandler.read_kconfig_parser(os.path.join(self.args.build_root, SLK_KCONFIG))
-        Data.current_kcfg = []
-        for hdr in HDRS:
-            Data.current_kcfg.extend(all_kcfg.get(hdr, []))
-        Data.current_kcfg = KCFG.parse_opts_strs(Data.current_kcfg)
-
-        Data.kcfg_exclude = FileHandler.read_raw(os.path.join(self.args.build_root, SLK_KCONFIG_EXCLUDE))
 
         new_up = set(FileHandler.read_dir(self.args.patches, "*.patch"))
         new_non_up = set(FileHandler.read_dir(self.args.non_up_patches, "*.patch"))
@@ -302,9 +270,15 @@ class PostProcess(HwMgmtAction):
             sys.exit(1)
         
     def mv_new_non_up_mlnx(self):
+        dest_fpath = os.path.join(self.args.build_root, NON_UP_PATCH_LOC)
+        if not Data.new_non_up and os.path.exists(dest_fpath):
+            os.rmdir(dest_fpath)
+            return
+
         for patch in Data.new_non_up:
             src_path = os.path.join(self.args.non_up_patches, patch)
-            shutil.copy(src_path, os.path.join(self.args.build_root, NON_UP_PATCH_LOC))
+            os.makedirs(dest_fpath, exist_ok=True)
+            shutil.copy(src_path, dest_fpath)
     
     def construct_series_with_non_up(self):
         Data.agg_slk_series = copy.deepcopy(Data.up_slk_series) 
@@ -332,58 +306,32 @@ class PostProcess(HwMgmtAction):
         FileHandler.write_lines(self.args.current_non_up_patches, lines)
         print("\n -> POST: series file updated with non-upstream patches \n{}".format("".join(Data.agg_slk_series)))
 
-    def write_series_diff(self):
+    def get_series_diff(self):
         diff = difflib.unified_diff(Data.up_slk_series, Data.agg_slk_series, fromfile='a/patch/series', tofile="b/patch/series", lineterm="\n")
         lines = []
         for line in diff:
             lines.append(line)
         print("\n -> POST: final series.diff \n{}".format("".join(lines)))
-        FileHandler.write_lines(os.path.join(self.args.build_root, NON_UP_PATCH_DIFF), lines, True)
+        return lines
     
-    def check_kconfig_conflicts(self):
-        # current config under mellanox marker
-        old_mlnx_kcfg =  FileHandler.read_kconfig_inclusion(os.path.join(self.args.build_root, SLK_KCONFIG))
-        old_mlnx_kcfg = KCFG.parse_opts_strs(old_mlnx_kcfg)
+    def get_merged_diff(self, series_diff: list, kcfg_diff: list) -> list:
+        if series_diff or kcfg_diff:
+            return series_diff + ["\n"] + kcfg_diff
+        else:
+            return []
 
-        print("-> INFO: [common] + [amd64] Kconfig: \n{}".format("\n".join(KCFG.get_writable_opts(Data.current_kcfg))))
-        print("-> INFO: current mellanox marker Kconfig: \n{}".format("\n".join(KCFG.get_writable_opts(old_mlnx_kcfg))))
-
-        # Filter the mellanox config from current config
-        conflict_prone = set(Data.current_kcfg)
-        for kcfg in old_mlnx_kcfg:
-            if kcfg in conflict_prone:
-                conflict_prone.remove(kcfg)
-
-        print("-> INFO: conflict prone Kconfig: \n{}".format("\n".join(KCFG.get_writable_opts(list(conflict_prone)))))
-        print("-> INFO: updated kconfig for mellanox marker: \n{}".format("\n".join(KCFG.get_writable_opts(Data.updated_kcfg))))
-
-        # check for conflicts
-        has_conflict = False
-        for (cfg, val) in Data.updated_kcfg:
-            for (cfg_o, val_o) in conflict_prone:
-                if cfg == cfg_o and val != val_o:
-                    print("-> ERR Conflict seen on the following kconfig: {}, old_opt: {}, new_opt: {}".format(cfg, val_o, val))
-                    has_conflict = True
-        return has_conflict
-
-    def handle_exclusions(self):
-        new_lines = []
-        curr_hdr = ""
-        for line_raw in Data.kcfg_exclude:
-            line = line_raw.strip()
-            should_exclude = False
-            if line:
-                match = re.search(KCFG_HDR_RE, line)
-                if match:
-                    curr_hdr = match.group(1)
-                else:
-                    for (kcfg, _) in Data.updated_kcfg:
-                        if kcfg == line and curr_hdr in HDRS:
-                            should_exclude = True
-            if not should_exclude:
-                new_lines.append(line_raw)
-        FileHandler.write_lines(os.path.join(self.args.build_root, SLK_KCONFIG_EXCLUDE), new_lines, True)
-        print("-> INFO: updated kconfig-exclusion: \n{}".format("".join(FileHandler.read_raw(os.path.join(self.args.build_root, SLK_KCONFIG_EXCLUDE)))))
+    def write_non_up_diff(self, series_diff, kcfg_diff):
+        final_diff = self.get_merged_diff(series_diff, kcfg_diff)
+        non_up_diff_path = os.path.join(self.args.build_root, NON_UP_DIFF)
+        if "".join(final_diff).strip():
+            # don't write anything if the diff just contains whitespaces
+            FileHandler.write_lines(non_up_diff_path, final_diff, True)
+        else:
+            # if nothing to write, delete the patch file
+            try:
+                os.remove(non_up_diff_path)
+            except OSError as error:
+                print("-> NOTICE File {} remove failed with error {}".format(non_up_diff_path, error))
 
     def list_patches(self):
         old_up_patches = []
@@ -428,6 +376,7 @@ class PostProcess(HwMgmtAction):
         title = COMMIT_TITLE.format(self.args.hw_mgmt_ver) 
         changes_slk, changes_sb = {}, {}
         old_up_patches, old_non_up_patches = self.list_patches()
+        print(old_up_patches)
         for patch in table:
             patch_ = patch.get(PATCH_NAME)
             id_ = self._fetch_description(patch_, patch.get(COMMIT_ID, ""))
@@ -448,18 +397,9 @@ class PostProcess(HwMgmtAction):
     def perform(self):
         """ Read the data output from the deploy_kernel_patches.py script 
             and move to appropriate locations """
+        # Handle Patches related logic
         self.read_data()
         self.find_mlnx_hw_mgmt_markers()
-        # Find and report conflicts in new kconfig
-        if self.check_kconfig_conflicts():
-            print("-> FATAL Conflicts in kconfig-inclusion detected, exiting...")
-            sys.exit(1)
-        else:
-            # Write the new kcfg to the new file
-            path = os.path.join(self.args.build_root, SLK_KCONFIG)
-            FileHandler.write_lines_marker(path, KCFG.get_writable_opts(Data.updated_kcfg), MLNX_KFG_MARKER)
-        self.handle_exclusions()
-        # Handle Upstream patches
         self.rm_old_up_mlnx()
         self.mv_new_up_mlnx()
         self.write_final_slk_series()
@@ -467,7 +407,10 @@ class PostProcess(HwMgmtAction):
         self.rm_old_non_up_mlnx()
         self.mv_new_non_up_mlnx()
         self.construct_series_with_non_up()
-        self.write_series_diff()
+        series_diff = self.get_series_diff()
+        # handle kconfig and get any diff
+        kcfg_diff = self.kcfg_handler.perform()
+        self.write_non_up_diff(series_diff, kcfg_diff)
 
         path = os.path.join(self.args.build_root, PATCH_TABLE_LOC)
         patch_table = load_patch_table(path, Data.k_ver)
@@ -481,6 +424,8 @@ class PostProcess(HwMgmtAction):
         if self.args.slk_msg:
             with open(self.args.slk_msg, 'w') as f:
                 f.write(slk_msg) 
+        
+
 
 def create_parser():
     # Create argument parser
@@ -492,7 +437,12 @@ def create_parser():
     # Optional arguments
     parser.add_argument("--patches", type=str)
     parser.add_argument("--non_up_patches", type=str)
-    parser.add_argument("--config_inclusion", type=str)
+    parser.add_argument("--config_base_amd", type=str, required=True)
+    parser.add_argument("--config_base_arm", type=str, required=True)
+    parser.add_argument("--config_inc_amd", type=str, required=True)
+    parser.add_argument("--config_inc_arm", type=str, required=True)
+    parser.add_argument("--config_inc_down_amd", type=str)
+    parser.add_argument("--config_inc_down_arm", type=str)
     parser.add_argument("--series", type=str)
     parser.add_argument("--current_non_up_patches", type=str)
     parser.add_argument("--build_root", type=str)

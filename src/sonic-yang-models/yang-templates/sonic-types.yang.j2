@@ -76,8 +76,10 @@ module sonic-types {
             enum IPV4;
             enum IPV6;
             enum IPv4ANY;
+            enum IPV4ANY;
             enum NON_IP4;
             enum IPv6ANY;
+            enum IPV6ANY;
             enum NON_IPv6;
             enum ARP;
         }
@@ -209,6 +211,14 @@ module sonic-types {
         }
     }
 
+    typedef switchport_mode {
+        type string {
+            pattern "routed|access|trunk";
+        }
+        description
+            "SwitchPort Modes for Port & PortChannel";
+    }
+
     typedef meter_type {
         type enumeration {
             enum packets;
@@ -334,6 +344,19 @@ module sonic-types {
         }
     }
 
+    typedef hash-algorithm {
+        description "Represents hash algorithm";
+        type enumeration {
+            enum CRC;
+            enum XOR;
+            enum RANDOM;
+            enum CRC_32LO;
+            enum CRC_32HI;
+            enum CRC_CCITT;
+            enum CRC_XOR;
+        }
+    }
+
     typedef timezone-name-type {
         type string;
         description
@@ -345,6 +368,28 @@ module sonic-types {
             for a particular server is out of scope.";
         reference
             "BCP 175: Procedures for Maintaining the Time Zone Database";
+    }
+
+    typedef yes-no {
+        description "Yes/No configuration";
+        type enumeration {
+            enum yes;
+            enum no;
+        }
+    }
+
+    typedef on-off {
+        description "On/Off configuration";
+        type enumeration {
+            enum on;
+            enum off;
+        }
+    }
+
+    typedef asic_name {
+        type string {
+            pattern '[Aa][Ss][Ii][Cc][0-9]{1,2}';
+        }
     }
 
     {% if yang_model_type == "cvl" %}

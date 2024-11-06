@@ -7,16 +7,15 @@ DERIVED_TARGETS = protobuf-compiler_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).
 					libprotobuf-dev_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb \
 					libprotobuf-lite32_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb \
 					libprotoc32_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb \
-					python3-protobuf_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb
+					libprotoc-dev_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb \
+					python3-protobuf_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb \
+					ruby-google-protobuf_$(PROTOBUF_VERSION_FULL)_$(CONFIGURED_ARCH).deb
 
 $(addprefix $(DEST)/, $(MAIN_TARGET)): $(DEST)/% :
 	# Remove any stale files
 	rm -rf protobuf-$(PROTOBUF_VERSION)
 
-	wget -O protobuf_$(PROTOBUF_VERSION).orig.tar.gz http://deb.debian.org/debian/pool/main/p/protobuf/protobuf_$(PROTOBUF_VERSION).orig.tar.gz
-	wget -O protobuf_$(PROTOBUF_VERSION_FULL).dsc http://deb.debian.org/debian/pool/main/p/protobuf/protobuf_$(PROTOBUF_VERSION_FULL).dsc
-	wget -O protobuf_$(PROTOBUF_VERSION_FULL).debian.tar.xz http://deb.debian.org/debian/pool/main/p/protobuf/protobuf_$(PROTOBUF_VERSION_FULL).debian.tar.xz
-	dpkg-source -x protobuf_$(PROTOBUF_VERSION_FULL).dsc
+	dget -u protobuf_$(PROTOBUF_VERSION_FULL).dsc http://deb.debian.org/debian/pool/main/p/protobuf/protobuf_$(PROTOBUF_VERSION_FULL).dsc
 
 	pushd protobuf-$(PROTOBUF_VERSION)
 

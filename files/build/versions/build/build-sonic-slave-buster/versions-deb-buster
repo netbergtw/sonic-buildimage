@@ -1,9 +1,13 @@
+libnl-3-200==3.5.0-1
+libnl-3-dev==3.5.0-1
 libnl-cli-3-200==3.5.0-1
 libnl-cli-3-dev==3.5.0-1
 libnl-genl-3-200==3.5.0-1
 libnl-genl-3-dev==3.5.0-1
 libnl-nf-3-200==3.5.0-1
 libnl-nf-3-dev==3.5.0-1
+libnl-route-3-200==3.5.0-1
+libnl-route-3-dev==3.5.0-1
 libsaimetadata==1.0.0
 libsaimetadata-dev==1.0.0
 libsairedis==1.0.0
@@ -13,7 +17,6 @@ libswsscommon==1.0.0
 libswsscommon-dev==1.0.0
 libthrift-0.11.0==0.11.0-4
 libthrift-dev==0.11.0-4
-libthrift0==0.14.1
 libyang==1.0.73
 libyang-cpp==1.0.73
 libyang-dev==1.0.73
@@ -23,5 +26,4 @@ python3-swsscommon==1.0.0
 python3-yang==1.0.73
 sonic-mgmt-common==1.0.0
 sonic-mgmt-common-codegen==1.0.0
-sonic-mgmt-framework==1.0-01
 thrift-compiler==0.11.0-4

@@ -1,8 +1,8 @@
 # linux kernel package
 
-KVERSION_SHORT = 5.10.0-18-2
+KVERSION_SHORT = 6.1.0-22-2
 KVERSION = $(KVERSION_SHORT)-$(CONFIGURED_ARCH)
-KERNEL_VERSION = 5.10.140
+KERNEL_VERSION = 6.1.94
 KERNEL_SUBVERSION = 1
 ifeq ($(CONFIGURED_ARCH), armhf)
 # Override kernel version for ARMHF as it uses arm MP (multi-platform) for short version
@@ -12,7 +12,7 @@ endif
 # Place an URL here to .tar.gz file if you want to include those patches
 EXTERNAL_KERNEL_PATCH_URL =
 # Set y to include non upstream patches tarball provided by the corresponding platform
-INCLUDE_EXTERNAL_PATCHES = n
+INCLUDE_EXTERNAL_PATCHES ?= n
 # platforms should override this and provide an absolute location to the patches
 EXTERNAL_KERNEL_PATCH_LOC =
 

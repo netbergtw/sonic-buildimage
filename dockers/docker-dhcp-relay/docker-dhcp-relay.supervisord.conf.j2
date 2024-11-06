@@ -56,7 +56,6 @@ dependent_startup_wait_for=rsyslogd:running
 {% if ipv4_num_relays.count > 0 or ipv6_num_relays.count > 0 %}
 {% include 'dhcp-relay.programs.j2' %}
 
-
 {# Create a program entry for each DHCP relay agent instance #}
 {% set relay_for_ipv4 = { 'flag': False } %}
 {% set relay_for_ipv6 = { 'flag': False } %}
@@ -68,3 +67,12 @@ dependent_startup_wait_for=rsyslogd:running
 {% include 'dhcp-relay.monitors.j2' %}
 {% endif %}
 {% endif %}
+[program:dhcprelayd]
+command=/usr/local/bin/dhcprelayd
+priority=3
+autostart=false
+autorestart=false
+stdout_logfile=syslog
+stderr_logfile=syslog
+dependent_startup=true
+dependent_startup_wait_for=start:exited
