@@ -113,7 +113,7 @@ dependent_startup=true
 dependent_startup_wait_for=zsocket:exited
 
 [program:vrrpd]
-command=/usr/lib/frr/vrrpd -A 127.0.0.1 -M snmp
+command=/usr/lib/frr/vrrpd -A 127.0.0.1
 priority=5
 stopsignal=KILL
 autostart=false
