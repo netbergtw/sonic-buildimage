@@ -8,6 +8,7 @@
 		    "cbs":"600",
 		    "red_action":"drop"
 	    },
+
 	    "queue4_group1": {
 		    "trap_action":"trap",
 		    "trap_priority":"4",
@@ -43,6 +44,26 @@
 {% endif %}
 		    "red_action":"drop"
 	    },
+            "queue4_group4": {
+                    "trap_action":"trap",
+                    "trap_priority":"4",
+                    "queue": "4",
+                    "meter_type":"packets",
+                    "mode":"sr_tcm",
+                    "cir":"1000",
+                    "cbs":"1000",
+                    "red_action":"drop"
+            },
+            "queue4_group5": {
+                    "trap_action":"trap",
+                    "trap_priority":"4",
+                    "queue": "4",
+                    "meter_type":"packets",
+                    "mode":"sr_tcm",
+                    "cir":"1000",
+                    "cbs":"1000",
+                    "red_action":"drop"
+            },
 	    "queue1_group1": {
 		    "trap_action":"trap",
 		    "trap_priority":"1",
@@ -82,6 +103,18 @@
 		    "trap_ids": "bgp,bgpv6",
 		    "trap_group": "queue4_group1"
 	    },
+            "ospf": {
+                    "trap_ids": "ospf",
+                    "trap_group": "queue4_group4"
+            },
+            "vrrp": {
+                    "trap_ids": "vrrp,vrrpv6",
+                    "trap_group": "queue4_group4"
+            },
+            "isis": {
+                    "trap_ids": "isis",
+                    "trap_group": "queue4_group5"
+            },
 	    "lacp": {
 		    "trap_ids": "lacp",
 		    "trap_group": "queue4_group1",
