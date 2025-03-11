@@ -3,6 +3,7 @@ include $(PLATFORM_PATH)/onie-image.mk
 
 SONIC_ALL += $(DOCKER_DATABASE) \
          $(DOCKER_SNMP) \
+	 $(DOCKER_STP) \
          $(DOCKER_LLDP) \
          $(DOCKER_PLATFORM_MONITOR) \
          $(DOCKER_DHCP_RELAY) \
