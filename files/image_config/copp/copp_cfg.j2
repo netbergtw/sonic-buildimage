@@ -8,7 +8,6 @@
 		    "cbs":"600",
 		    "red_action":"drop"
 	    },
-
 	    "queue4_group1": {
 		    "trap_action":"trap",
 		    "trap_priority":"4",
@@ -44,26 +43,46 @@
 {% endif %}
 		    "red_action":"drop"
 	    },
-            "queue4_group4": {
-                    "trap_action":"trap",
-                    "trap_priority":"4",
-                    "queue": "4",
-                    "meter_type":"packets",
-                    "mode":"sr_tcm",
-                    "cir":"1000",
-                    "cbs":"1000",
-                    "red_action":"drop"
-            },
-            "queue4_group5": {
-                    "trap_action":"trap",
-                    "trap_priority":"4",
-                    "queue": "4",
-                    "meter_type":"packets",
-                    "mode":"sr_tcm",
-                    "cir":"1000",
-                    "cbs":"1000",
-                    "red_action":"drop"
-            },
+        "queue4_group4": {
+            "trap_action":"trap",
+            "trap_priority":"4",
+            "queue": "4",
+            "meter_type":"packets",
+            "mode":"sr_tcm",
+            "cir":"1000",
+            "cbs":"1000",
+            "red_action":"drop"
+        },
+        "queue4_group5": {
+            "trap_action":"trap",
+            "trap_priority":"4",
+            "queue": "4",
+            "meter_type":"packets",
+            "mode":"sr_tcm",
+            "cir":"1000",
+            "cbs":"1000",
+            "red_action":"drop"
+        },
+        "queue4_group6": {
+            "trap_action":"trap",
+            "trap_priority":"5",
+            "queue": "4",
+            "meter_type":"packets",
+            "mode":"sr_tcm",
+            "cir":"600",
+            "cbs":"600",
+            "red_action":"drop"
+        },
+        "queue4_group7": {
+            "trap_action":"copy",
+            "trap_priority":"5",
+            "queue": "4",
+            "meter_type":"packets",
+            "mode":"sr_tcm",
+            "cir":"600",
+            "cbs":"600",
+            "red_action":"drop"
+        },
 	    "queue1_group1": {
 		    "trap_action":"trap",
 		    "trap_priority":"1",
@@ -103,18 +122,6 @@
 		    "trap_ids": "bgp,bgpv6",
 		    "trap_group": "queue4_group1"
 	    },
-            "ospf": {
-                    "trap_ids": "ospf",
-                    "trap_group": "queue4_group4"
-            },
-            "vrrp": {
-                    "trap_ids": "vrrp,vrrpv6",
-                    "trap_group": "queue4_group4"
-            },
-            "isis": {
-                    "trap_ids": "isis",
-                    "trap_group": "queue4_group5"
-            },
 	    "lacp": {
 		    "trap_ids": "lacp",
 		    "trap_group": "queue4_group1",
@@ -128,6 +135,11 @@
 	    "lldp": {
 		    "trap_ids": "lldp",
 		    "trap_group": "queue4_group3"
+	    },
+	    "mclag": {
+		    "trap_ids": "mclag",
+		    "trap_group": "queue4_group1",
+		    "always_enabled": "true"
 	    },
 	    "dhcp_relay": {
 		    "trap_ids": "dhcp,dhcpv6",
@@ -143,10 +155,6 @@
 		    "trap_group": "queue1_group1",
 		    "always_enabled": "true"
 	    },
-	    "macsec": {
-		    "trap_ids": "eapol",
-		    "trap_group": "queue4_group1"
-	    },
 	    "nat": {
 		    "trap_ids": "src_nat_miss,dest_nat_miss",
 		    "trap_group": "queue1_group2"
@@ -154,6 +162,36 @@
 	    "sflow": {
 		    "trap_group": "queue2_group1",
 		    "trap_ids": "sample_packet"
-	    }
+	    },
+        "ospf": {
+            "trap_ids": "ospf",
+            "trap_group": "queue4_group4",
+            "always_enabled": "true"
+        },
+        "vrrp": {
+            "trap_ids": "vrrp,vrrpv6",
+            "trap_group": "queue4_group4",
+            "always_enabled": "true"
+        },
+        "isis": {
+            "trap_ids": "isis",
+            "trap_group": "queue4_group5",
+            "always_enabled": "true"
+        },
+        "bfd": {
+            "trap_ids": "bfd",
+            "trap_group": "queue4_group4",
+            "always_enabled": "true"
+        },
+        "evpn": {
+            "trap_ids": "arp_suppression,nd_suppression",
+            "trap_group": "queue4_group6",
+            "always_enabled": "true"
+        },
+        "vxlan_arp": {
+            "trap_ids": "vxlan_arp",
+            "trap_group": "queue4_group7",
+            "always_enabled": "true"
+        }
     }
 }
