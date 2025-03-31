@@ -49,7 +49,6 @@
             "pddf_gpio_module"
         ],
         "custom_kos": [
-            "aurora-221-cpld"
         ]
     },
     "SYSTEM": {
