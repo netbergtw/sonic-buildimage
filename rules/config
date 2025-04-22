@@ -134,10 +134,13 @@ INCLUDE_SYSTEM_EVENTD = y
 INCLUDE_SYSTEM_TELEMETRY = n
 
 # INCLUDE_ICCPD - build docker-iccpd for mclag support
-INCLUDE_ICCPD = n
+INCLUDE_ICCPD = y
 
 # INCLUDE_SFLOW - build docker-sflow for sFlow support
 INCLUDE_SFLOW = y
+
+# INCLUDE_SFLOW - build docker-stp for STP support
+INCLUDE_STP = y
 
 # INCLUDE_MGMT_FRAMEWORK - build docker-sonic-mgmt-framework for CLI and REST server support
 INCLUDE_MGMT_FRAMEWORK = y
@@ -164,7 +167,7 @@ ifeq ($(SMARTSWITCH), 1)
 endif
 
 # INCLUDE_P4RT - build docker-p4rt for P4RT support
-INCLUDE_P4RT = n
+INCLUDE_P4RT = y
 
 # ENABLE_AUTO_TECH_SUPPORT - Enable the configuration for event-driven techsupport & coredump mgmt feature
 ENABLE_AUTO_TECH_SUPPORT = y
