@@ -140,7 +140,7 @@ INCLUDE_ICCPD = y
 INCLUDE_SFLOW = y
 
 # INCLUDE_SFLOW - build docker-stp for STP support
-INCLUDE_STP = y
+INCLUDE_STP = n
 
 # INCLUDE_MGMT_FRAMEWORK - build docker-sonic-mgmt-framework for CLI and REST server support
 INCLUDE_MGMT_FRAMEWORK = y
