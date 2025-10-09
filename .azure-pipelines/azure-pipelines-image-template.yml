@@ -36,7 +36,7 @@ jobs:
       - script: |
           [ -n "$OVERRIDE_BUILD_OPTIONS" ] && OVERRIDE_BUILD_OPTIONS=$(OVERRIDE_BUILD_OPTIONS)
           BUILD_OPTIONS="$(BUILD_OPTIONS) $OVERRIDE_BUILD_OPTIONS"
-          if [ -n "$(CACHE_MODE)" ] && echo $(PLATFORM_AZP) | grep -E -q "^(vs|broadcom|mellanox|marvell-armhf|marvell-arm64|vpp)$"; then
+          if [ -n "$(CACHE_MODE)" ] && echo $(PLATFORM_AZP) | grep -E -q "^(vs|broadcom|mellanox|marvell-prestera-armhf|marvell-prestera-arm64|vpp)$"; then
             CACHE_OPTIONS="SONIC_DPKG_CACHE_METHOD=$(CACHE_MODE) SONIC_DPKG_CACHE_SOURCE=/nfs/dpkg_cache/$(PLATFORM_AZP)"
             BUILD_OPTIONS="$BUILD_OPTIONS $CACHE_OPTIONS"
           fi
@@ -61,9 +61,13 @@ jobs:
         displayName: 'Checkout commit'
       - script: |
           set -x
+          pwd
+          realpath $(pwd)
+          realpath /mnt/vss
           sudo setfacl -R -b $(Agent.BuildDirectory)
         displayName: 'setfacl'
       - script: |
+          set -ex
           BRANCH_NAME=$(Build.SourceBranchName)
           [ -n "$SYSTEM_PULLREQUEST_PULLREQUESTID" ] && BRANCH_NAME="$SYSTEM_PULLREQUEST_TARGETBRANCH-$SYSTEM_PULLREQUEST_PULLREQUESTNUMBER"
           git checkout -b $BRANCH_NAME
