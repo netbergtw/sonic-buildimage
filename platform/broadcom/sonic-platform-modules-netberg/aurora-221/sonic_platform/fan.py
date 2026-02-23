@@ -62,7 +62,7 @@ class Fan(PddfFan):
             ucd_path = "/sys/bus/i2c/devices/5-0034/hwmon/"
             if os.path.exists(ucd_path):
                 hwmon_dir = os.listdir(ucd_path)
-                with open("{}/{}/temp{}_input".format(ucd_path, hwmon_dir[0], self.fantray_index), "rb") as f:
+                with open("{}/{}/fan{}_input".format(ucd_path, hwmon_dir[0], self.fantray_index), "rb") as f:
                     rpm_speed = int(f.read().strip())
 
         return rpm_speed
