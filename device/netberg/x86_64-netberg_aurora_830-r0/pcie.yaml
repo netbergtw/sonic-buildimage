@@ -699,17 +699,20 @@
   dev: '00'
   fn: '0'
   id: 37c0
-  name: 'PCI bridge: Intel Corporation Device 37c0 (rev 04)'
+  name: 'PCI bridge: Intel Corporation C62x chipset series PCIe x16/x8 Upstream Port
+    (rev 04)'
 - bus: b4
-  dev: '01'
+  dev: '00'
   fn: '0'
-  id: 37c3
-  name: 'PCI bridge: Intel Corporation Device 37c3 (rev 04)'
+  id: 37c2
+  name: 'PCI bridge: Intel Corporation C62x chipset series PCIe Virtual Switch Port
+    0 (rev 04)'
 - bus: b4
   dev: '03'
   fn: '0'
   id: 37c5
-  name: 'PCI bridge: Intel Corporation Device 37c5 (rev 04)'
+  name: 'PCI bridge: Intel Corporation C62x chipset series PCIe Virtual Switch Port
+    3 (rev 04)'
 - bus: b5
   dev: '00'
   fn: '0'
