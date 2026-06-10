@@ -61,6 +61,8 @@ REBOOT_TYPE_KEXEC_PATTERN_WARM = ".*SONIC_BOOT_TYPE=(warm|fastfast).*"
 REBOOT_TYPE_KEXEC_PATTERN_FAST = ".*SONIC_BOOT_TYPE=(fast|fast-reboot).*"
 
 SYS_DISPLAY = "SYS_DISPLAY"
+MALFUNCTION_SYSFS_READ_ERROR_DELAY_SECS = 1
+MALFUNCTION_SYSFS_READ_ERROR_MIN_SLEEP_SECS = 0.5
 
 # Global logger class instance
 logger = Logger()
@@ -487,7 +489,9 @@ class Chassis(ChassisBase):
         begin = time.monotonic()
         wait_ready_task = sfp.SFP.get_wait_ready_task()
         
-        while True:        
+        while True:
+            iteration_begin = time.monotonic()
+            has_read_error = False
             fds_events = self.poll_obj.poll(timeout)
             for fileno, _ in fds_events:
                 if fileno not in self.registered_fds:
@@ -496,8 +500,18 @@ class Chassis(ChassisBase):
                 
                 sfp_index, fd, fd_type = self.registered_fds[fileno]
                 s = self._sfp_list[sfp_index]
-                fd.seek(0)
-                fd_value = int(fd.read().strip())
+                try:
+                    fd.seek(0)
+                except OSError as e:
+                    logger.log_warning(f'Failed to seek file {fd_type} for SFP {sfp_index}: {e}')
+                    has_read_error = True
+                    continue
+                try:
+                    fd_value = int(fd.read().strip())
+                except (OSError, IOError, ValueError) as e:
+                    logger.log_warning(f'Failed to read value from file {fd_type} for SFP {sfp_index}: {e}')
+                    has_read_error = True
+                    continue
 
                 # Detecting dummy event
                 if s.is_dummy_event(fd_type, fd_value):
@@ -560,8 +574,13 @@ class Chassis(ChassisBase):
                     'sfp_error': error_dict
                 }
             else:
+                now = time.monotonic()
+                if has_read_error:
+                    sleep_time = MALFUNCTION_SYSFS_READ_ERROR_DELAY_SECS - (now - iteration_begin)
+                    if sleep_time > MALFUNCTION_SYSFS_READ_ERROR_MIN_SLEEP_SECS:
+                        time.sleep(sleep_time)
                 if not wait_forever:
-                    elapse = time.monotonic() - begin
+                    elapse = now - begin
                     if elapse * 1000 >= timeout:
                         return True, {'sfp': {}}
 
@@ -609,6 +628,8 @@ class Chassis(ChassisBase):
         begin = time.monotonic()
         
         while True:
+            iteration_begin = time.monotonic()
+            has_read_error = False
             fds_events = self.poll_obj.poll(timeout)
             for fileno, _ in fds_events:
                 if fileno not in self.registered_fds:
@@ -616,8 +637,19 @@ class Chassis(ChassisBase):
                     continue
                 
                 sfp_index, fd = self.registered_fds[fileno]
-                fd.seek(0)
-                fd.read()
+                try:
+                    fd.seek(0)
+                except OSError as e:
+                    logger.log_warning(f'Failed to seek module sysfs fd for SFP {sfp_index}: {e}')
+                    has_read_error = True
+                    continue
+                try:
+                    fd.read()
+                except (OSError, IOError) as e:
+                    logger.log_warning(f'Failed to read module sysfs fd for SFP {sfp_index}: {e}')
+                    has_read_error = True
+                    continue
+
                 s = self._sfp_list[sfp_index]
                 sfp_status = s.get_module_status()
 
@@ -655,8 +687,13 @@ class Chassis(ChassisBase):
                     'sfp_error': error_dict
                 }
             else:
+                now = time.monotonic()
+                if has_read_error:
+                    sleep_time = MALFUNCTION_SYSFS_READ_ERROR_DELAY_SECS - (now - iteration_begin)
+                    if sleep_time > MALFUNCTION_SYSFS_READ_ERROR_MIN_SLEEP_SECS:
+                        time.sleep(sleep_time)
                 if not wait_forever:
-                    elapse = time.monotonic() - begin
+                    elapse = now - begin
                     if elapse * 1000 >= timeout:
                         return True, {'sfp': {}}
 
@@ -1016,10 +1053,15 @@ class Chassis(ChassisBase):
     def initialize_reboot_cause(self):
         self.reboot_major_cause_dict = {
             'reset_main_pwr_fail'       :   self.REBOOT_CAUSE_POWER_LOSS,
+            'reset_ac_pwr_fail'         :   self.REBOOT_CAUSE_POWER_LOSS,
             'reset_aux_pwr_or_ref'      :   self.REBOOT_CAUSE_POWER_LOSS,
+            'reset_aux_pwr_or_reload'   :   self.REBOOT_CAUSE_POWER_LOSS,
             'reset_aux_pwr_or_fu'       :   self.REBOOT_CAUSE_POWER_LOSS,
             'reset_comex_pwr_fail'      :   self.REBOOT_CAUSE_POWER_LOSS,
+            'reset_main_51v'            :   self.REBOOT_CAUSE_POWER_LOSS,
+            'reset_mgmt_pwr_fail'       :   self.REBOOT_CAUSE_POWER_LOSS,
             'reset_asic_thermal'        :   self.REBOOT_CAUSE_THERMAL_OVERLOAD_ASIC,
+            'reset_cpu_thermal'         :   self.REBOOT_CAUSE_THERMAL_OVERLOAD_CPU,
             'reset_comex_thermal'       :   self.REBOOT_CAUSE_THERMAL_OVERLOAD_CPU,
             'reset_hotswap_or_wd'       :   self.REBOOT_CAUSE_WATCHDOG,
             'reset_comex_wd'            :   self.REBOOT_CAUSE_WATCHDOG,
@@ -1027,6 +1069,8 @@ class Chassis(ChassisBase):
             'reset_sff_wd'              :   self.REBOOT_CAUSE_WATCHDOG,
             'reset_hotswap_or_halt'     :   self.REBOOT_CAUSE_HARDWARE_OTHER,
             'reset_voltmon_upgrade_fail':   self.REBOOT_CAUSE_HARDWARE_OTHER,
+            'reset_pwr_converter_fail'  :   self.REBOOT_CAUSE_HARDWARE_OTHER,
+            'reset_swb_dc_dc_pwr_fail'  :   self.REBOOT_CAUSE_HARDWARE_OTHER,
             'reset_reload_bios'         :   self.REBOOT_CAUSE_HARDWARE_BIOS,
             'reset_fw_reset'            :   self.REBOOT_CAUSE_HARDWARE_RESET_FROM_ASIC,
             'reset_from_asic'           :   self.REBOOT_CAUSE_HARDWARE_RESET_FROM_ASIC,
@@ -1088,6 +1132,7 @@ class Chassis(ChassisBase):
 
         for reset_file, reset_cause in self.reboot_major_cause_dict.items():
             if self._verify_reboot_cause(reset_file):
+                logger.log_info("Hardware reboot cause: {}".format(reset_file))
                 return reset_cause, ''
 
         for reset_file, reset_cause in self.reboot_minor_cause_dict.items():

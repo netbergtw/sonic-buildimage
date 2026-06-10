@@ -165,9 +165,6 @@ fi
 ## Update initramfs for booting with squashfs+overlay
 cat files/initramfs-tools/modules | sudo tee -a $FILESYSTEM_ROOT/etc/initramfs-tools/modules > /dev/null
 
-## Install kbuild for sign-file into docker image (not fsroot)
-sudo LANG=C DEBIAN_FRONTEND=noninteractive apt -y --allow-downgrades install ./$debs_path/linux-kbuild-${LINUX_KERNEL_VERSION}*_${CONFIGURED_ARCH}.deb
-
 ## Hook into initramfs: change fs type from vfat to ext4 on arista switches
 sudo mkdir -p $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/
 sudo cp files/initramfs-tools/arista-convertfs $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-premount/arista-convertfs
@@ -202,6 +199,8 @@ sudo cp files/initramfs-tools/union-mount $FILESYSTEM_ROOT/etc/initramfs-tools/s
 sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/union-mount
 sudo cp files/initramfs-tools/varlog $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/varlog
 sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/varlog
+sudo cp files/initramfs-tools/swi2bin $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/swi2bin
+sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/swi2bin
 # Management interface (eth0) dhcp can be optionally turned off (during a migration from another NOS to SONiC)
 #sudo cp files/initramfs-tools/mgmt-intf-dhcp $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/mgmt-intf-dhcp
 #sudo chmod +x $FILESYSTEM_ROOT/etc/initramfs-tools/scripts/init-bottom/mgmt-intf-dhcp
@@ -292,6 +291,8 @@ fi
 sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system/docker.service.d/
 ## Note: $_ means last argument of last command
 sudo cp files/docker/docker.service.conf $_
+sudo cp files/docker/docker-netfilter-ready.sh $FILESYSTEM_ROOT/usr/local/bin/docker-netfilter-ready.sh
+sudo chmod 0755 $FILESYSTEM_ROOT/usr/local/bin/docker-netfilter-ready.sh
 
 ## Create default user
 ## Note: user should be in the group with the same name, and also in sudo/docker/redis groups
@@ -362,7 +363,6 @@ sudo LANG=C DEBIAN_FRONTEND=noninteractive chroot $FILESYSTEM_ROOT apt-get -y in
     cgroup-tools            \
     ipmitool                \
     ndisc6                  \
-    makedumpfile            \
     conntrack               \
     python3                 \
     python3-pip             \
@@ -454,12 +454,14 @@ if [[ $TARGET_BOOTLOADER == grub ]]; then
 	( cd $FILESYSTEM_ROOT; sudo rm -f $basename_deb_packages )
 
     if [[ $CONFIGURED_ARCH == amd64 ]]; then
-        GRUB_PKG=grub-pc-bin
+        GRUB_PKGS='grub-efi-amd64-bin grub-pc-bin'
     elif [[ $CONFIGURED_ARCH == arm64 ]]; then
-        GRUB_PKG=grub-efi-arm64-bin
+        GRUB_PKGS=grub-efi-arm64-bin
     fi
 
-    sudo cp $debs_path/${GRUB_PKG}*.deb $FILESYSTEM_ROOT/$PLATFORM_DIR/grub
+    for grub_pkg in $GRUB_PKGS; do
+       sudo cp $debs_path/${grub_pkg}*.deb $FILESYSTEM_ROOT/$PLATFORM_DIR/grub
+    done
 fi
 
 ## Disable kexec supported reboot which was installed by default
@@ -474,6 +476,15 @@ sudo rm -f $FILESYSTEM_ROOT/etc/ssh/ssh_host_*_key*
 sudo cp files/sshd/host-ssh-keygen.sh $FILESYSTEM_ROOT/usr/local/bin/
 sudo mkdir $FILESYSTEM_ROOT/etc/systemd/system/ssh.service.d
 sudo cp files/sshd/override.conf $FILESYSTEM_ROOT/etc/systemd/system/ssh.service.d/override.conf
+
+# Mask systemd-ssh-generator: SONiC manages ssh.service directly and does not
+# use the per-socket / AF_VSOCK units this generator creates. Starting with
+# systemd 257.13 the generator exits non-zero on SONiC hosts, which pollutes
+# syslog with an ERR-level message and trips loganalyzer in test runs.
+# An /etc/ override pointing to /dev/null tells systemd to skip the generator.
+sudo mkdir -p $FILESYSTEM_ROOT/etc/systemd/system-generators
+sudo ln -sf /dev/null $FILESYSTEM_ROOT/etc/systemd/system-generators/systemd-ssh-generator
+
 # Config sshd
 # 1. Set 'UseDNS' to 'no'
 # 2. Configure sshd to close all SSH connetions after 15 minutes of inactivity
@@ -821,8 +832,6 @@ sudo mkdir -p $FILESYSTEM_ROOT/var/lib/docker
 ## Clear DNS configuration inherited from the build server
 sudo rm -f $FILESYSTEM_ROOT/etc/resolvconf/resolv.conf.d/original
 sudo cp files/image_config/resolv-config/resolv.conf.head $FILESYSTEM_ROOT/etc/resolvconf/resolv.conf.d/head
-sudo rm -f $FILESYSTEM_ROOT/etc/resolv.conf
-sudo touch $FILESYSTEM_ROOT/etc/resolv.conf
 
 ## Optimize filesystem size
 if [ "$BUILD_REDUCE_IMAGE_SIZE" = "y" ]; then
