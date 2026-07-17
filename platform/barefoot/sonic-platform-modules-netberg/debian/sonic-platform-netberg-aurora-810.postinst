@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+depmod -a
+systemctl enable aurora-810-monitor.service
+systemctl start aurora-810-monitor.service
+
+#PLATFORM_NAME=x86_64-netberg_aurora_810-r0
+#SONIC_PLATFORM_WHEEL_PY3="/usr/share/sonic/device/${PLATFORM_NAME}/sonic_platform-1.0-py3-none-any.whl"
+#python3 -m pip install ${SONIC_PLATFORM_WHEEL_PY3}
+pip3 install /usr/share/sonic/device/x86_64-netberg_aurora_810-r0/sonic_platform-1.0-py3-none-any.whl
+#DEBHELPER#
+

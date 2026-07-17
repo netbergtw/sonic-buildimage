@@ -1,0 +1,10 @@
+{
+    "chassis": {
+        "aurora-810": {
+            "component": {
+                "BIOS": { },
+                "BMC": { }
+            }
+        }
+    }
+}
